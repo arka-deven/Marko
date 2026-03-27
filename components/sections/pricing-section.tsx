@@ -4,43 +4,43 @@ import Link from "next/link"
 const plans = [
   {
     name: "Starter",
-    description: "Perfect for side projects and small teams",
+    description: "For teams getting serious about systematic growth",
     price: "$0",
-    period: "forever",
-    features: ["Up to 3 team members", "5 projects", "Basic analytics", "Community support", "1GB storage"],
-    cta: "Get Started",
+    period: "14-day trial",
+    features: ["Up to 50 ideas/month", "AI validation (basic)", "1 content channel", "ROI tracking dashboard", "Slack notifications"],
+    cta: "Start Free Trial",
     highlighted: false,
   },
   {
-    name: "Pro",
-    description: "For growing teams that need more power",
-    price: "$29",
+    name: "Growth",
+    description: "For teams running experiments at scale",
+    price: "$49",
     period: "/month",
     features: [
-      "Unlimited team members",
-      "Unlimited projects",
-      "Advanced analytics",
-      "Priority support",
-      "100GB storage",
-      "Custom integrations",
-      "API access",
+      "Unlimited ideas & experiments",
+      "Claude-powered AI validation",
+      "5 content channels",
+      "Full ROI attribution",
+      "GA + Stripe integrations",
+      "Multi-language content (3 langs)",
+      "Weekly performance reports",
     ],
     cta: "Start Free Trial",
     highlighted: true,
   },
   {
-    name: "Enterprise",
-    description: "For large organizations with custom needs",
+    name: "Scale",
+    description: "For organizations running growth as infrastructure",
     price: "Custom",
     period: "",
     features: [
-      "Everything in Pro",
-      "Dedicated account manager",
-      "Custom SLA",
-      "On-premise deployment",
-      "Unlimited storage",
-      "Advanced security",
-      "Training & onboarding",
+      "Everything in Growth",
+      "Dedicated AI agent config",
+      "Unlimited languages",
+      "Executive report automation",
+      "Custom integrations & API",
+      "White-glove onboarding",
+      "SLA + dedicated support",
     ],
     cta: "Contact Sales",
     highlighted: false,
@@ -55,10 +55,10 @@ export function PricingSection() {
         <div className="text-center mb-16">
           <p className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4">Pricing</p>
           <h2 className="font-display text-4xl md:text-5xl font-bold text-zinc-100 mb-4">
-            Simple, transparent pricing
+            Invest in a growth system, not guesswork
           </h2>
           <p className="text-zinc-500 max-w-xl mx-auto text-balance text-lg">
-            No hidden fees. No surprises. Choose the plan that works for you.
+            No hidden fees. No surprises. Start free, scale when your experiments do.
           </p>
         </div>
 

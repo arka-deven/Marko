@@ -1,8 +1,8 @@
 const metrics = [
-  { value: "99.99%", label: "Uptime SLA", description: "Enterprise reliability" },
-  { value: "10M+", label: "API Requests/Day", description: "Proven at scale" },
-  { value: "<50ms", label: "Avg Response", description: "Blazing fast" },
-  { value: "150+", label: "Countries", description: "Global reach" },
+  { value: "500+", label: "Ideas Generated", description: "Per active team" },
+  { value: "30x", label: "More Experiments", description: "vs. manual process" },
+  { value: "<24h", label: "Idea to Execution", description: "Fully automated" },
+  { value: "5+", label: "Languages", description: "Content engine" },
 ]
 
 export function ImpactSection() {
@@ -11,10 +11,10 @@ export function ImpactSection() {
       <div className="max-w-5xl mx-auto">
         {/* Impact Section Header */}
         <div className="text-center mb-12">
-          <p className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4">Our Impact</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-zinc-100 mb-4">Trusted by teams worldwide</h2>
+          <p className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4">Results</p>
+          <h2 className="font-display text-3xl md:text-4xl font-bold text-zinc-100 mb-4">The numbers behind the machine</h2>
           <p className="text-zinc-500 max-w-lg mx-auto text-balance">
-            Numbers that speak for themselves. See why thousands choose us.
+            Marko's Growth Agent runs experiments continuously, so you always have data — not gut feelings.
           </p>
         </div>
 

@@ -5,14 +5,14 @@ import { Zap, BarChart3, Layers, ArrowRight, Command } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
 const integrationLogos = [
-  { name: "Tool 1" },
-  { name: "Tool 2" },
-  { name: "Tool 3" },
-  { name: "Tool 4" },
-  { name: "Tool 5" },
-  { name: "Tool 6" },
-  { name: "Tool 7" },
-  { name: "Tool 8" },
+  { name: "Google Analytics" },
+  { name: "Stripe" },
+  { name: "Anthropic" },
+  { name: "Slack" },
+  { name: "Supabase" },
+  { name: "Vercel" },
+  { name: "SendGrid" },
+  { name: "LinkedIn" },
 ]
 
 export function FeaturesSection() {
@@ -27,12 +27,12 @@ export function FeaturesSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <p className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4">Features</p>
+          <p className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4">How It Works</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-zinc-100 mb-4">
-            Everything you need to succeed
+            Everything your growth engine needs
           </h2>
           <p className="text-zinc-500 max-w-xl mx-auto text-balance">
-            Powerful features designed to help you ship better products, faster.
+            Marko handles the full growth loop — from idea to execution to ROI measurement — autonomously.
           </p>
         </motion.div>
 
@@ -55,10 +55,10 @@ export function FeaturesSection() {
                   >
                     <BarChart3 className="w-5 h-5 text-zinc-400 group-hover:text-zinc-200 transition-colors" />
                   </motion.div>
-                  <p className="font-heading font-semibold text-zinc-100">Real-time Dashboard</p>
+                  <p className="font-heading font-semibold text-zinc-100">Experiment Dashboard</p>
                 </div>
                 <p className="text-zinc-500 text-sm mb-5">
-                  Track every metric that matters with customizable dashboards.
+                  Real-time view of every experiment — ROI, status, category performance, all in one place.
                 </p>
                 <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 overflow-hidden">
                   <div className="flex items-center justify-between mb-4">
@@ -93,9 +93,9 @@ export function FeaturesSection() {
                   {/* Animated metrics row */}
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {[
-                      { label: "Total Users", value: "12.4K", change: "+12%" },
-                      { label: "Revenue", value: "$48.2K", change: "+8%" },
-                      { label: "Conversion", value: "3.2%", change: "+2%" },
+                      { label: "Ideas Generated", value: "500+", change: "+30%" },
+                      { label: "Positive ROI", value: "42", change: "+18%" },
+                      { label: "Time to Launch", value: "<24h", change: "-60%" },
                     ].map((metric, i) => (
                       <motion.div
                         key={metric.label}
@@ -164,9 +164,9 @@ export function FeaturesSection() {
                   >
                     <Zap className="w-5 h-5 text-zinc-400 group-hover:text-zinc-200 transition-colors" />
                   </motion.div>
-                  <p className="font-heading font-semibold text-zinc-100">Blazing Fast</p>
+                  <p className="font-heading font-semibold text-zinc-100">AI-Powered</p>
                 </div>
-                <p className="text-zinc-500 text-sm mb-5">Optimized for speed at any scale.</p>
+                <p className="text-zinc-500 text-sm mb-5">Claude-powered idea generation and validation at scale.</p>
                 <div className="mt-auto">
                   <div className="flex items-baseline gap-2 mb-3">
                     <motion.span
@@ -175,9 +175,9 @@ export function FeaturesSection() {
                       whileInView={{ opacity: 1 }}
                       viewport={{ once: true }}
                     >
-                      99.9%
+                      30x
                     </motion.span>
-                    <span className="text-zinc-500 text-sm">uptime</span>
+                    <span className="text-zinc-500 text-sm">more experiments</span>
                   </div>
                   <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                     <motion.div
@@ -210,14 +210,14 @@ export function FeaturesSection() {
                   >
                     <Command className="w-5 h-5 text-zinc-400 group-hover:text-zinc-200 transition-colors" />
                   </motion.div>
-                  <p className="font-heading font-semibold text-zinc-100">Keyboard First</p>
+                  <p className="font-heading font-semibold text-zinc-100">Learning Loop</p>
                 </div>
-                <p className="text-zinc-500 text-sm mb-5">Every action is just a keystroke away.</p>
+                <p className="text-zinc-500 text-sm mb-5">Marko learns what works and improves targeting every week.</p>
                 <div className="flex justify-center gap-2 mt-auto">
-                  {["⌘", "K"].map((key, i) => (
+                  {["↑", "ROI"].map((key, i) => (
                     <motion.div
                       key={key}
-                      className="flex items-center justify-center w-12 h-12 rounded-xl bg-zinc-800/80 border border-zinc-700/50 shadow-lg"
+                      className="flex items-center justify-center px-4 h-12 rounded-xl bg-zinc-800/80 border border-zinc-700/50 shadow-lg"
                       initial={{ y: 0 }}
                       animate={{ y: [0, -4, 0] }}
                       transition={{
@@ -254,9 +254,9 @@ export function FeaturesSection() {
                   >
                     <Layers className="w-5 h-5 text-zinc-400 group-hover:text-zinc-200 transition-colors" />
                   </motion.div>
-                  <p className="font-heading font-semibold text-zinc-100">100+ Integrations</p>
+                  <p className="font-heading font-semibold text-zinc-100">Native Integrations</p>
                 </div>
-                <p className="text-zinc-500 text-sm mb-5">Connect with tools you already use daily.</p>
+                <p className="text-zinc-500 text-sm mb-5">Connect GA, Stripe, Slack, email, and social — Marko reads signals from everywhere.</p>
                 <div className="grid grid-cols-8 gap-2 mt-auto">
                   {integrationLogos.map((logo, i) => (
                     <motion.div

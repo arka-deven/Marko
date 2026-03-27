@@ -5,58 +5,58 @@ import { TestimonialsColumn } from "@/components/ui/testimonials-column"
 
 const testimonials = [
   {
-    text: "This platform completely transformed how we build products. We shipped our MVP in 2 weeks instead of 2 months.",
+    text: "Marko changed how we approach growth entirely. We went from 2 experiments a month to 20+ — and the AI-validated ones actually convert.",
     image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face",
-    name: "Sarah Chen",
-    role: "CTO at TechFlow",
+    name: "Jordan Ellis",
+    role: "Head of Growth, Veritas",
   },
   {
-    text: "The best investment we've made for our engineering team. The ROI was immediate and substantial.",
+    text: "The ROI tracking alone made it worth it. We finally know which experiments move revenue vs. which ones just feel productive.",
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-    name: "Marcus Johnson",
-    role: "VP Engineering at Scale",
+    name: "Alex Mercer",
+    role: "VP Marketing, Luminary Labs",
   },
   {
-    text: "Finally, a tool that actually delivers on its promises. Our deployment time went from hours to minutes.",
+    text: "From idea to executed content in under 24 hours. Marko is the growth operator we've always wanted but never found.",
     image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-    name: "Emily Rodriguez",
-    role: "Lead Developer at Nexus",
+    name: "Morgan Blake",
+    role: "Co-Founder, Cascade.io",
   },
   {
-    text: "Implementing this was smooth and quick. The customizable interface made team onboarding effortless.",
+    text: "We ran 40 experiments in our first month. Marko validated 35 of them automatically. Two turned into our core acquisition channels.",
     image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-    name: "David Park",
-    role: "IT Manager",
+    name: "Sam Rivera",
+    role: "Director of Strategy, Orbit",
   },
   {
-    text: "The support team is exceptional, guiding us through setup and providing ongoing assistance.",
+    text: "The content engine is elite. Multilingual SEO articles, social posts, email sequences — Marko writes them all and tracks what lands.",
     image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face",
-    name: "Aisha Patel",
-    role: "Customer Success Lead",
+    name: "Taylor Nguyen",
+    role: "Content Lead, Meridian",
   },
   {
-    text: "Seamless integration enhanced our business operations and efficiency. Highly recommend.",
+    text: "Finally, a tool that treats growth like engineering. Hypothesis → experiment → data → iterate. Marko runs the whole loop.",
     image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
-    name: "James Wilson",
-    role: "CEO at Quantum",
+    name: "Jamie Okafor",
+    role: "CEO, Northfield Digital",
   },
   {
-    text: "Its robust features and quick support have transformed our workflow significantly.",
+    text: "Our team's velocity doubled in 6 weeks. We spend zero time debating ideas now — Marko tells us what the data says to pursue.",
     image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face",
-    name: "Lisa Thompson",
-    role: "Project Manager",
+    name: "Riley Sutton",
+    role: "Growth Engineer, Apex Stack",
   },
   {
-    text: "The smooth implementation exceeded expectations. It streamlined our entire business process.",
+    text: "Integrations with GA, Stripe, and Slack took minutes. Marko started surfacing insights we'd been manually chasing for months.",
     image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face",
-    name: "Michael Brown",
-    role: "Business Analyst",
+    name: "Drew Kim",
+    role: "Operations Lead, Driftwood",
   },
   {
-    text: "Our team productivity improved dramatically with the user-friendly design and powerful features.",
+    text: "We scaled to 5 languages in 3 weeks with Marko's content engine. Each market is now getting targeted experiments. Insane leverage.",
     image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
-    name: "Rachel Kim",
-    role: "Marketing Director",
+    name: "Cameron Walsh",
+    role: "International Growth, Sova",
   },
 ]
 
@@ -64,7 +64,7 @@ const firstColumn = testimonials.slice(0, 3)
 const secondColumn = testimonials.slice(3, 6)
 const thirdColumn = testimonials.slice(6, 9)
 
-const logos = ["TechCorp", "Innovate", "NextGen", "Quantum", "Velocity", "Apex"]
+const logos = ["Veritas", "Luminary", "Cascade", "Northfield", "Meridian", "Apex Stack"]
 
 export function TestimonialsSection() {
   return (
@@ -80,10 +80,10 @@ export function TestimonialsSection() {
           <div className="border border-zinc-800 py-1.5 px-4 rounded-full text-sm text-zinc-400">Testimonials</div>
 
           <h2 className="font-display text-4xl md:text-5xl font-bold text-zinc-100 mt-6 text-center tracking-tight">
-            What our users say
+            Results from real growth teams
           </h2>
           <p className="text-center mt-4 text-zinc-500 text-lg text-balance">
-            See what our customers have to say about us.
+            Hear from teams who replaced guesswork with Marko's systematic growth engine.
           </p>
         </motion.div>
 

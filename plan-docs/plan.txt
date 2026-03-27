@@ -1,0 +1,884 @@
+PREPARED FOR
+Cialdini Institute
+Growth Agent — Full Implementation Plan
+Technology · Architecture · Marketing · Operations · Budget
+Submitted by: Vendor Team · March 2026 · Version 1.0
+Prepared for: Samir Patel, CEO · Vasu, Senior Analyst
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 2
+What We're Building and Why
+Cialdini Institute has an execution problem, not an idea problem. Good growth ideas exist — the bottleneck is the time
+and headspace required to validate, plan, and run them in parallel. This document outlines the full build plan for an
+AI-powered Growth Agent that removes that bottleneck entirely: a system that generates ideas, scores them, validates
+them through AI analysis, produces the marketing assets, tracks results, and kills what isn't working — continuously,
+without human bottlenecks.
+The system is designed to run 20–30 experiments simultaneously across all three business priorities: growing the
+Cialdini Institute community, driving AI Bob subscriptions, and establishing the CIP as the industry-standard influence
+assessment. This plan covers everything from the exact tech stack and architecture to the marketing playbook,
+Higgsfield AI video integration, auth design decisions, pipeline flows, and 12-week delivery timeline.
+ 5,000
+ 1,000
+ 10,000
+ 20–30
+ Community Members
+ AI Bob Subscribers
+ CIP Completions
+ Simultaneous Experiments
+ 12-mo target
+ 12-mo target
+ 12-mo target
+ running at once
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 3
+Production Tech Stack
+The prototype runs inside Claude.ai as a React artifact with Artifact-native persistent storage. It is technically functional
+but cannot be shared, scheduled, or connected to external services. The production build migrates this to a standalone
+deployable system. Every decision below is made with one constraint in mind: no BullMQ/Redis queues on Vercel. That
+combination requires a persistent worker process that Vercel's 60-second serverless timeout cannot support — a
+migration we've already had to do on other projects. We're building around that from day one.
+Final Stack Decision
+Layer
+Technology
+Why This, Not the Alternative
+Frontend
+Next.js on Vercel
+Vercel-native. Same repo as API. No split infra.
+API
+Next.js API Routes
+No Cloudflare Workers. Same codebase, no runtime context-switch.
+Database
+Supabase
+(PostgreSQL)
+Chosen for RLS role-gating, realtime subscriptions, and built-in auth. No
+separate auth service.
+Auth
+Better Auth (not
+Supabase Auth)
+See auth section below. Better Auth gives us full control, multi-tenant
+sessions, and cleaner API.
+Job Orchestr
+ation
+Inngest
+Durable multi-step jobs on Vercel without BullMQ. HTTP-callback model —
+no persistent worker needed. Free tier covers our volume.
+AI Engine
+Anthropic Claude
+Sonnet 4
+All tasks: generation, validation, execution planning, content. Opus
+dropped — Sonnet handles it at 5x lower cost.
+Prompt
+Observability
+Langfuse
+Traces every Claude API call: prompt in, response out, tokens, latency.
+Required for weekly prompt tuning.
+Schema
+Validation
+Zod
+Validates all Claude JSON output before Supabase write. Prevents corrupt
+records from unstructured LLM responses.
+Video
+Generation
+Higgsfield AI Cloud
+API
+Cinematic AI video for content engine. Python SDK + webhook support.
+See Higgsfield section.
+Email
+Resend
+Better DX than SendGrid, generous free tier, clean API for transactional
+and digest emails.
+Social
+Scheduling
+LinkedIn API + X API
+(native)
+Buffer removed — $15/mo middleman with rate limits we don't control.
+Direct API calls from Inngest cron.
+Internal
+Analytics
+OpenPanel
+Product analytics on the Growth Agent dashboard itself. Free,
+open-source, self-hosted on Vercel.
+What We Dropped and Why
+Dropped
+Replaced With
+Reason
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 4
+BullMQ + Redis queue
+Inngest
+BullMQ needs persistent worker. Vercel kills processes at 60s.
+Already hit this on Caellis — not repeating it.
+Cloudflare Workers
+Next.js API Routes
+Adds a second runtime, second deploy config, Node.js compat
+issues with Supabase and Stripe SDKs.
+Cloudflare Access
+(auth)
+Better Auth
+3-user role gate doesn't need a CDN-layer auth product. Better
+Auth at DB level is simpler and cheaper.
+Buffer ($15/mo)
+Native LinkedIn + X
+APIs
+Removes external rate limits. We own the scheduling pipeline.
+Claude Opus
+Sonnet 4 everywhere
+Opus is 5x cost with no meaningful quality gain for idea
+generation or validation at this volume.
+SendGrid
+Resend
+Resend has cleaner API, better deliverability for transactional,
+and developer-friendly docs.
+Supabase Auth
+Better Auth
+Full control over sessions, multi-tenant capable, not tied to
+Supabase's auth schema. See below.
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 5
+Auth: Better Auth over Supabase Auth
+Supabase Auth works but it's opinionated. It stores users in its own auth schema, your role logic has to live in RLS
+policies that can get complex fast, and it's tightly coupled to Supabase's infrastructure. For three users right now it's fine
+— but if this system ever needs to onboard external team members, agencies, or white-label access, Supabase Auth
+becomes a wall.
+Better Auth (better-auth.com) is a TypeScript-first auth library that runs in your own Next.js API routes, stores sessions in
+your own Supabase Postgres tables, and gives you full control over the session schema, roles, and multi-tenancy. No
+external auth service. No vendor lock-in beyond what you're already using. And critically — it ships with first-class
+support for social login (Google, Microsoft), magic links, and org-level role management.
+Capability
+Supabase Auth
+Better Auth
+Session storage
+Supabase auth schema (opaque)
+Your own Postgres tables
+(transparent)
+Role-gating
+RLS policies (complex at scale)
+Middleware + DB roles (explicit,
+debuggable)
+Social login
+Yes
+Yes (Google, Microsoft, GitHub, etc.)
+Magic links
+Yes
+Yes
+Multi-tenant
+Limited — requires workarounds
+First-class org support built-in
+Future white-label
+Painful migration
+Zero migration — already on your
+schema
+Vendor dependency
+Tied to Supabase Auth service
+Self-hosted, runs in your Next.js
+Cost
+$0 (included in Supabase)
+$0 (open-source)
+Role Permission Matrix
+Permission
+ Samir (Admin)
+ Vasu (Builder)
+ Courtney (Ops)
+Generate new ideas
+ ✓
+ ✓
+ ✗
+Validate / approve ideas
+ ✓
+ ✓
+ ✗
+Move pipeline stages
+ ✓
+ ✓
+ ✓
+Add notes to ideas
+ ✓
+ ✓
+ ✓
+View all ideas + ROI
+ ✓
+ ✓
+ ✓
+Delete ideas
+ ✓
+ ✓
+ ✗
+Approve content for publish
+ ✓
+ ✓
+ ✗
+View Courtney task lists
+ ✓
+ ✓
+ ✓
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 6
+Access billing / API keys
+ ✓
+ ✗
+ ✗
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 7
+Higgsfield AI — Video Generation Integration
+Higgsfield AI is a cinematic AI video generation platform backed by $138M in funding ($80M Series A from Accel in
+January 2026, valuation $1.3B). It aggregates 15+ video models — Sora 2, Google Veo 3.1, Kling 3.0, WAN 2.6 — under
+one API with 70+ cinematic camera presets, VFX layers, lip-sync capability, and UGC builder templates. For the Growth
+Agent, this is the content engine's video layer.
+API Status
+Higgsfield launched their Cloud API in beta (April 2025) and it is now in general availability via cloud.higgsfield.ai. They
+ship an official Python SDK (higgsfield-client on GitHub) with both synchronous and async support, plus webhook
+callbacks for completion events. API keys are generated from the cloud dashboard after account creation.
+# Install
+pip install higgsfield-client
+# Set credentials (env vars)
+HIGGSFIELD_API_KEY=your_key
+# Generate a 5s video from an image (async + webhook)
+import higgsfield_client
+result = higgsfield_client.subscribe(
+'higgsfield/image-to-video/cinematic',
+arguments={
+'image_url': 'https://cdn.cialdini.com/samir.jpg',
+'prompt': 'Professional thought leader speaking to camera, dolly in',
+'camera_preset': 'dolly_in',
+'duration': 5,
+'resolution': '1080p',
+},
+webhook_url='https://growth.cialdini.com/api/higgsfield/webhook'
+)
+How It Plugs Into the Growth Agent
+Use Case
+Higgsfield Call
+Output
+Trigger
+Samir thought-leader
+clip
+image-to-video/cinematic +
+dolly preset
+5–10s branded video
+Content engine
+approves LinkedIn post
+CIP explainer video
+text-to-video + Veo 3.1 model
+15s explainer for ads
+CIP promotion module
+fires
+Multilingual avatar
+Speak 2.0 lip-sync +
+translated script
+Samir avatar in
+ES/PT/ZH
+International content
+cron
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 8
+UGC testimonial ad
+UGC Builder (Veo 3 powered)
+Photorealistic testimonial
+Paid ad campaign
+approved
+A/B video variants
+Submit 2x jobs with different
+presets
+2 variants for split test
+A/B test framework
+Pricing Reality Check
+Higgsfield uses a credit system. As of March 2026, credits cost increased ~50–67%. A 10-second 1080p video now costs
+25 credits (was 15). The Pro plan ($29/mo) includes enough credits for roughly 15–20 videos per month before hitting
+caps. For the Growth Agent, we recommend the Creator plan ($149/mo) for the content engine phase (Week 6+), and
+building in cost-per-video as a metric in the ROI tracker so Higgsfield spend is measured against content performance.
+Plan
+Price
+Credits/mo
+Approx Videos (1080p 10s)
+Recommended For
+Basic
+$9/mo
+150
+~6
+Testing only
+Pro
+$29/mo
+500
+~20
+Phase 1–2 (pre-content engine)
+Ultimate
+$49/mo
+1000
+~40
+Phase 3 content engine start
+Creator
+$149/mo
+3500
+~140
+Full content engine (Week 6+)
+Custom
+TBD
+Unlimited
+Unlimited
+Enterprise / high volume
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 9
+System Architecture & Pipeline Flow
+The Growth Agent is built as three loosely coupled subsystems: the Idea Engine, the Content Engine, and the Metrics
+Engine. Each runs independently and feeds data into a shared Supabase database. Below is the full pipeline from input
+to result.
+Full Pipeline Diagram
+Manual Entry
+Dashboard UI
+Inngest Cron
+Mon 6AM ET
+Voice Memo
+Whisper → text
+Generation Engine
+Claude Sonnet 4  ·  Zod validation
+Scoring Engine
+Impact × Ease matrix
+Supabase DB
+ideas table
+Zod
+Schema guard
+Inngest Job
+24hr auto-validation
+Claude Validation
+proceed / kill / pivot + Langfuse trace
+Slack Digest
+#growth-ops
+Resend Email
+Courtney tasks
+Dashboard
+Realtime update
+Execution Plan Engine
+Claude generates week-by-week plan
+Content Engine
+Blog · Social · Email · Video
+Metrics Engine
+GA · Stripe · Squarespace
+Auto-Kill Engine
+14/30-day thresholds · budget realloc
+Report Generator
+Monthly exec PDF · Learning loop
+INPUT LAYER
+GENERATION
+SCORING
+VALIDATION
+NOTIFICATION
+EXECUTION
+CONTENT + METRICS
+KILL + REPORT
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 10
+Every idea — manually entered or auto-generated — flows through all 8 stages. Each stage is a separate Inngest step with retry logic. Failures
+in any stage do not block the pipeline.
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 11
+Pipeline Stage Detail
+01 INPUT
+Ideas enter the system three ways: manual entry via the dashboard (any team member), the Inngest weekly cron that
+fires Monday at 6 AM ET and generates 15 ideas automatically, or a voice memo transcribed via Whisper. Each idea
+carries category, target language(s), and a Cialdini principle tag.
+→ Category: Content/SEO · Community · Partnerships · Paid · AI Bob · International · Events · Email · Referral
+→ Language targets: EN · ES · PT · FR · DE · AR · HI · ZH · JA · KO
+→ Cialdini principle: Reciprocity · Commitment · Social Proof · Authority · Liking · Scarcity · Unity
+02 GENERATION ENGINE
+A Next.js API route calls Claude Sonnet 4 with a structured prompt containing the business context, category
+constraints, language targets, and examples of high-quality vs low-quality ideas from previous sessions (Langfuse
+traces feed this). Output is a JSON array validated by Zod before any write to Supabase. Invalid schema = retry, not
+silent corrupt data.
+→ Output fields: title, description, category, target_languages, effort_score, impact_score, estimated_cost,
+validation_method, success_metrics, cialdini_principle
+→ Batch size: 10–15 ideas per cron run. Up to 75 on manual generation.
+→ Zod catches: missing fields, out-of-range scores, invalid language codes, null descriptions
+03 SCORING ENGINE
+Every idea is automatically scored on a Priority = Impact × Ease matrix (both 1–9 scale). This score is written to
+Supabase immediately and used to sort the dashboard. Scores are visible to Samir and Vasu, not Courtney.
+→ Priority Score = impact_score × ease_score (1–81 range)
+→ Dashboard default sort: Priority Score descending
+→ Validation may revise scores — stored as priority_score_revised alongside original
+04 VALIDATION ENGINE
+An Inngest job fires within 24 hours of generation. It calls Claude with the idea, business context, and all existing ideas
+in the pipeline (so Claude can flag duplicates). Every call is traced in Langfuse — prompt in, response out, tokens
+used, latency. Results write back to Supabase and move the idea to Validated (or Killed).
+→ Verdict: Proceed · Kill · Pivot (with pivot instructions)
+→ Output: risk_assessment, quick_win_alternatives, revised_priority_score, validation_notes
+→ Langfuse tag: category + language + verdict for cross-run analysis
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 12
+05 NOTIFICATION LAYER
+After validation runs, three notifications fire simultaneously via Inngest. Slack gets the weekly top-5 digest in
+#growth-ops. Resend sends Courtney a formatted task list of all ideas currently in Executing stage with their delegation
+notes. Supabase realtime pushes a dashboard update to any open browser sessions.
+→ Slack digest: idea title, category, priority score, one-line execution summary
+→ Courtney email: task title, steps, tools needed, deadline, go/no-go criteria
+→ Dashboard: optimistic UI update before DB confirms via Supabase realtime
+06 EXECUTION PLAN ENGINE
+When Samir or Vasu approves an idea, a Claude call generates a full week-by-week execution plan. This is the most
+token-intensive call in the pipeline — it produces structured output with tasks, milestones, tools required, budget line
+items, delegation notes, and go/no-go checkpoints. The idea moves to Executing stage.
+→ Week-by-week task breakdown with owners (Vasu / Courtney / Samir)
+→ Budget breakdown per line item (maps to Stripe-tracked spend)
+→ Go/no-go criteria at each milestone (used by auto-kill engine)
+→ Delegation notes formatted for Courtney's copy-paste workflow
+07 CONTENT ENGINE
+For content-category ideas, the content engine produces publish-ready assets. Claude generates the blog post,
+LinkedIn copy (2–3 A/B variants), email sequence, and passes approved text to the Higgsfield API for video
+generation. Multi-language versions are produced for the top target markets. Everything is stored in Supabase pending
+human approval.
+→ Blog post: 800–1200 words, SEO-optimised, Cialdini principle woven in
+→ LinkedIn: 2–3 variants with different hooks, same core message
+→ Email sequence: 3–5 emails per idea (welcome → nurture → CTA)
+→ Higgsfield: cinematic video asset generated via Cloud API (image-to-video or text-to-video)
+→ Multilingual: EN → ES/PT/ZH via Claude translation + cultural adaptation pass
+08 METRICS ENGINE
+A daily Inngest cron pulls real conversion data from three sources and maps it to idea IDs in Supabase. ROI is
+calculated automatically. No manual logging required after setup. Results feed the ROI dashboard and the auto-kill
+engine.
+→ Google Analytics API: pageviews, signup conversions, CIP traffic
+→ Stripe API (read-only): AI Bob subscription revenue, new MRR attributed to experiments
+→ Squarespace API: community page traffic, CIP completion counts
+→ ROI = attributed_revenue - (idea_cost + higgsfield_spend + ad_spend)
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 13
+09 AUTO-KILL ENGINE
+An Inngest job checks all ideas in Executing stage daily. If a low-effort idea shows no traction after 14 days, it is
+flagged for kill review. High-effort ideas get 30 days. Samir or Vasu confirm the kill. Freed budget is surfaced as a
+reallocation suggestion to the top-scoring scaled winners.
+→ Low-effort threshold: 14 days, no measurable traction (zero attributed conversions)
+→ High-effort threshold: 30 days, below minimum ROI floor
+→ Kill confirmation required from Samir or Vasu (not Courtney)
+→ Reallocation: agent suggests moving freed budget to scaled experiments above ROI floor
+10 REPORT & LEARNING LOOP
+Monthly, Claude generates an executive report from the full Supabase dataset: aggregate ROI by category, best and
+worst experiments, language market performance, and recommendations for the next month. Langfuse prompt traces
+from the month are analysed to identify which prompt patterns produced the highest-ROI ideas — that analysis feeds
+back into the generation prompt for the next cycle.
+→ Aggregate ROI by category and language
+→ Top 5 and bottom 5 experiments with full trace
+→ Language market breakdown (which markets converted best)
+→ AI recommendations: next month focus areas based on data
+→ Prompt improvement: Langfuse traces analysed for high-ROI vs low-ROI idea patterns
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 14
+Marketing Strategy
+The Growth Agent generates and executes the marketing experiments, but it needs a strategic foundation to generate
+ideas worth executing. This section defines the audience, channels, funnels, and playbooks that the agent draws from.
+Audience Segments
+Segment
+Who They Are
+Hook
+Primary
+Channel
+End Goal
+Influence
+Practitioners
+Sales, negotiation,
+executive coaches
+CIP: benchmark your
+influence profile
+LinkedIn, Email
+Community member
+Business Leaders
+Founders, C-suite,
+senior managers
+AI Bob: always-on
+influence advisor
+LinkedIn,
+Podcast,
+Events
+AI Bob subscriber
+L&D; / HR
+Professionals
+Corporate trainers, HR
+teams
+Certified team
+influence assessment
+Email, Partner
+outreach
+Bulk CIP +
+community seats
+International
+Learners
+Non-English markets
+(ES, PT, AR, ZH)
+Localised CIP +
+native-language
+community
+Language-spe
+cific social,
+WhatsApp
+Community member
+(global)
+Academic /
+Research
+Psych, behavioural
+economics, MBA
+students
+Cialdini's research
+credibility +
+certification
+LinkedIn,
+Substack
+CIP completion +
+community
+Funnel Architecture
+AWARENESS
+Organic content · Podcast · SEO · Higgsfield videos
+∞
+INTEREST
+Free CIP assessment · AI Bob free tier · Newsletter
+~40%
+DESIRE
+Results email · Community preview · AI Bob paywall
+~25%
+ACTION
+Community join · AI Bob subscribe · CIP purchase
+~8%
+SCALE
+Referral · Upgrade · Corporate cohort
+~3%
+Channel Playbooks
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 15
+LinkedIn (primary
+organic)
+Weekly insight posts applying Cialdini principles to real business situations. Short clips from
+Samir generated by Higgsfield (image-to-video with dolly presets). Engagement posts that
+drive CIP quiz traffic. Carousel posts with influence principle breakdowns. Paid
+thought-leader ads repurposing the top-performing organic posts.
+Email / Newsletter
+'1 Influence Principle This Week' — sent to the full list every Tuesday. 5-email nurture from
+CIP assessment completion → paid community member. 7-email AI Bob nurture for free-tier
+users → paid subscriber. Monthly community digest highlighting member wins and
+upcoming events.
+SEO / Blog
+Long-form posts targeting: 'Cialdini principles examples', 'influence style assessment',
+'persuasion techniques business', 'social proof marketing'. Minimum 1 post per week,
+800–1200 words, produced entirely by the content engine. Each post ends with a free CIP
+CTA.
+Higgsfield Video
+Cinematic Samir clips for LinkedIn and YouTube Shorts. CIP explainer videos for ads.
+Multilingual avatar videos (Higgsfield Speak 2.0) in ES, PT, ZH. UGC-style testimonial ads
+via Veo 3 UGC Builder. A/B test: same script, 2 different camera presets, measure CTR.
+Community Referral
+Members get a personalised referral link. Each referral who joins → 1 free month for the
+referrer. Top referrers each month get a public badge + featured in the newsletter.
+Corporate referrals (team of 5+) → dedicated cohort session with Samir.
+Partnerships
+Podcast guest appearances (influence, leadership, sales podcasts) driving CIP traffic.
+University business school partnerships — co-branded CIP certification for students.
+Corporate L&D; partnerships for team assessments. Affiliate programme: coaches and
+trainers earn commission on community seats and AI Bob subscriptions they drive.
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 16
+12-Week Delivery Timeline
+Task
+W1
+W2
+W3
+W4
+W5
+W6
+W7
+W8
+W9
+W10
+W11
+W12
+PHASE 1 — Foundation
+PHASE 2 — Automation
+PHASE 3 — Content
+PHASE 4 — Scale
+Next.js + Supabase setup
+Prototype migration → Next.js
+Auth (Better Auth) + roles
+Deploy Vercel + internal testing
+Inngest weekly cron — generation
+Inngest auto-validation cron
+Slack + Resend notifications
+GA + Stripe + Squarespace APIs
+Courtney task list view
+Higgsfield API integration
+Content engine — blog/social
+Multilingual content pipeline
+A/B test framework
+Auto-kill + reallocation logic
+Performance dashboard
+Learning loop + prompt tuning
+Monthly report generator
+Documentation + Courtney training
+Phase Gates
+Phase
+Gate Condition — Must Be True Before Next Phase
+Phase 1 → 2
+App is live on Vercel behind Better Auth. Samir, Vasu, Courtney can log in. Idea generation and AI
+validation work end-to-end.
+Phase 2 → 3
+Inngest crons generating and validating ideas weekly without human trigger. Real metric data
+(GA, Stripe, Squarespace) flowing into ROI tracker. Courtney receiving formatted task lists.
+Phase 3 → 4
+Content engine producing publish-ready assets in 3+ languages. At least 5 content pieces
+published through the system. Higgsfield video generation live. A/B testing operational.
+Phase 4 → Live
+System fully autonomous at Tier 2+. Langfuse prompt tuning documented. Monthly report
+automated. Courtney trained. Full system runbook complete.
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 17
+Budget & Cost Model
+Monthly Infrastructure
+Service
+Plan
+Monthly Cost
+Notes
+Anthropic API (Sonnet)
+Usage-based
+$150–$400
+~500K–1M tokens/week at Tier 2 automation
+Vercel
+Pro
+$20
+Hosting + serverless functions +
+Inngest-compatible cron
+Supabase
+Pro
+$25
+Database + realtime + storage
+Better Auth
+Open-source
+$0
+Self-hosted in Next.js, no external service
+Inngest
+Free → Pro
+$0–$50
+Scale to Pro only when job volume exceeds
+free limits
+Langfuse
+Cloud Free
+$0
+Prompt observability, generous free tier
+Higgsfield AI
+Pro → Creator
+$29–$149
+Pro for phases 1-2, Creator ($149) for full
+content engine
+Resend
+Free
+$0
+3,000 emails/mo free — sufficient for
+notifications
+LinkedIn API
+Developer
+$0
+Free for posting and scheduling
+X (Twitter) API
+Basic
+$100
+Required for write access / scheduling
+OpenPanel
+Self-hosted
+$0
+Internal dashboard analytics, hosted on
+Vercel
+Paid Experiments
+Starting budget
+$500
+Hard cap. Scaled from ROI-positive
+experiments only.
+Cost Scenario
+Monthly Total
+What's Included
+Phase 1–2 (Foundation +
+Automation)
+$295–$595
+Anthropic API + Vercel + Supabase + Higgsfield Pro +
+X API + paid experiment budget
+Phase 3–4 (Content Engine
+active)
+$825–$1,225
+Above + Higgsfield Creator ($149) + scaled ad budget
+Steady State (post Week 12)
+$600–$900
+Optimised post-launch — ad budget calibrated to ROI,
+Higgsfield at right tier
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 18
+Risk Register
+Risk
+ L
+ I
+Mitigation
+Samir's required inputs arrive
+late, blocking Vasu in Phase 1–2
+HIGH
+HIGH
+All 15 inputs pre-scheduled by Courtney before Week 1. Standing
+Monday 30-min review enforced. Blocked items escalate
+same-day.
+Phase 3 scope (content engine +
+Higgsfield + A/B + multilingual)
+overruns 4 weeks
+HIGH
+ MED
+De-scope Buffer integration (already done). Social scheduling
+goes via native API. Add 1 buffer week between Phase 3 and 4 if
+Week 8 milestone slips.
+Content approval workflow not
+decided by Phase 3 — Vasu
+blocked from publishing
+ MED
+HIGH
+Decision made in Week 1 kickoff, not Week 6. Vasu and Courtney
+can approve within brand guidelines. Samir reviews only high-risk
+content.
+Higgsfield credit costs increase
+further (already up 50–67% in
+March 2026)
+ MED
+ MED
+ROI tracker logs Higgsfield spend per video. If cost-per-video
+exceeds threshold, switch to Higgsfield Ultimate or negotiate
+enterprise rate.
+Claude JSON output fails Zod
+validation — ideas not written to
+DB
+ LOW
+ MED
+Zod errors logged to Langfuse. Inngest retries with a revised
+prompt. After 3 failures, alert fires to Slack. Vasu investigates
+prompt.
+Multi-language content fails
+quality check in non-English
+markets
+ MED
+ MED
+Start EN + ES only. Native speaker spot-check top 3 markets
+before any expand. Higgsfield Speak 2.0 for avatar — not raw
+text-to-speech.
+BullMQ/Redis pattern
+accidentally introduced during
+Phase 2 build
+ LOW
+HIGH
+Architecture review at Phase 2 kickoff. Inngest is the only job
+orchestration tool in the repo. Any PR adding BullMQ is rejected.
+Reg D compliance: Growth
+Agent generates Trophy Point
+investor content
+ LOW
+HIGH
+Content engine prompt explicitly excludes Trophy Point and
+investor acquisition. Samir reviews any financial content before
+publish. No exceptions.
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 19
+Success Metrics
+System Performance — Growth Agent Itself
+Metric
+ Week 4
+ Week 8
+ Week 12
+Total ideas generated
+ 100+
+ 300+
+ 500+
+Ideas validated by AI
+ 80+
+ 250+
+ 450+
+Ideas in Executing or beyond
+ 10+
+ 30+
+ 50+
+Ideas with ROI data logged
+ 5+
+ 20+
+ 40+
+Positive-ROI experiments
+ 2+
+ 10+
+ 20+
+Content pieces published
+ —
+ 10+
+ 40+
+Languages with active content
+ 1 (EN)
+ 3+
+ 5+
+Higgsfield videos produced
+ —
+ 5+
+ 20+
+Time from idea → execution start
+ 3–5 days
+ 1–2 days
+ < 24 hrs
+Business KPIs — 12-Month Targets
+ 5,000
+ 1,000
+ 10,000
+ 5+
+ Community Members
+ AI Bob Subscribers
+ CIP Completions
+ Languages Active
+
+CIALDINI INSTITUTE — Growth Agent Full Implementation Plan
+Confidential  ·  Page 20
+Immediate Next Steps
+These actions need to happen in the next 48 hours. Any delay here is a direct delay to the Phase 1 gate.
+ #
+Action
+ Owner
+ Due
+ 1
+Review this plan and flag any concerns or questions
+ Vasu
+ Day 1
+ 2
+Provide: Anthropic API key, Vercel confirmation, Supabase org access,
+subdomain (growth.cialdini.com)
+ Samir
+ Day 2
+ 3
+Confirm Courtney's permission level (which roles exactly — use the matrix on
+page 3)
+ Samir
+ Day 2
+ 4
+Decide content approval workflow: does every AI-generated post need
+Samir's approval, or can Vasu/Courtney approve within brand guidelines?
+ Samir
+ Day 2
+ 5
+Set up GitHub repo, Next.js scaffold, Supabase project, Better Auth config
+ Vasu
+ Day 3
+ 6
+Schedule standing Monday 30-min review meeting (Samir + Vasu). First
+meeting: Monday Week 1.
+ Courtney
+ Day 3
+ 7
+Begin Phase 1 build
+ Vasu
+ Day 4
+We are not trying to be perfect. We are trying to run 30 experiments at once and let the data tell us which 3 to scale. This
+system makes that mechanical. Let's build it.
+— Vendor Team, March 2026
+

@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Manrope } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { LenisProvider } from "@/components/providers/lenis-provider"
+import { ThemeProvider } from "next-themes"
 import "./globals.css"
 
 const manrope = Manrope({
@@ -11,10 +12,10 @@ const manrope = Manrope({
 })
 
 export const metadata: Metadata = {
-  title: "Liquid Metal Buttons | Premium UI Components",
+  title: "Marko — AI Growth Agent for Modern Teams",
   description:
-    "A collection of premium button components featuring animated liquid metal borders powered by Paper Shaders.",
-  generator: "v0.app",
+    "Marko is your always-on AI Growth Agent. Generate ideas, validate experiments, execute content, and track ROI — all automated, all in one platform.",
+  generator: "marko.app",
   icons: {
     icon: [
       {
@@ -40,16 +41,22 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Instrument+Sans:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className={`${manrope.variable} font-sans antialiased bg-zinc-950 text-zinc-100`}>
-        <LenisProvider>{children}</LenisProvider>
-        <Analytics />
+      <body className={`${manrope.variable} font-sans antialiased bg-background text-foreground`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          disableTransitionOnChange
+        >
+          <LenisProvider>{children}</LenisProvider>
+          <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   )
