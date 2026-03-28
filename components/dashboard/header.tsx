@@ -18,7 +18,7 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/dashboard/profile":        { title: "Profile",      subtitle: "Manage your personal account and preferences" },
 }
 
-export function Header() {
+export function Header({ userInitial = "U" }: { userInitial?: string }) {
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -76,7 +76,7 @@ export function Header() {
           href="/dashboard/profile"
           className="w-8 h-8 rounded-xl bg-secondary border border-border flex items-center justify-center text-xs font-semibold text-foreground hover:bg-secondary/80 transition-colors"
         >
-          M
+          {userInitial}
         </Link>
       </div>
     </header>

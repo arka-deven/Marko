@@ -1,8 +1,9 @@
-"use client"
-
 import type React from "react"
-import { Zap, Play, Pause, Plus } from "lucide-react"
+import { Zap, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/server"
+import { AutomationItem } from "@/components/dashboard/automations/automation-item"
+import type { Automation } from "@/lib/types"
 
 function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
   return (
@@ -12,56 +13,26 @@ function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
   )
 }
 
-const automations = [
-  {
-    name: "Weekly Experiment Digest",
-    description: "Every Monday 9AM — summarizes all experiment results and sends to Slack.",
-    trigger: "Schedule",
-    status: "active",
-    runs: 12,
-    lastRun: "Mar 25",
-  },
-  {
-    name: "Auto-launch Winning Variants",
-    description: "When an experiment hits 95% confidence, automatically promotes the winning variant.",
-    trigger: "Event",
-    status: "active",
-    runs: 4,
-    lastRun: "Mar 22",
-  },
-  {
-    name: "Low-confidence Experiment Alert",
-    description: "Notifies via Slack when an experiment runs 14+ days without reaching 70% confidence.",
-    trigger: "Condition",
-    status: "active",
-    runs: 7,
-    lastRun: "Mar 20",
-  },
-  {
-    name: "Monthly ROI Report to HubSpot",
-    description: "Sends a formatted experiment ROI summary to HubSpot CRM contacts at month end.",
-    trigger: "Schedule",
-    status: "paused",
-    runs: 2,
-    lastRun: "Feb 28",
-  },
-  {
-    name: "New Idea Generation",
-    description: "Every Friday, Marko generates 10 new experiment ideas based on recent performance data.",
-    trigger: "Schedule",
-    status: "active",
-    runs: 8,
-    lastRun: "Mar 22",
-  },
-]
+export default async function AutomationsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-const triggerColor: Record<string, string> = {
-  Schedule:  "bg-blue-500/10 text-blue-400",
-  Event:     "bg-purple-500/10 text-purple-400",
-  Condition: "bg-amber-500/10 text-amber-400",
-}
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user!.id)
+    .single()
 
-export default function AutomationsPage() {
+  const { data: automations = [] } = await supabase
+    .from("automations")
+    .select("*")
+    .eq("workspace_id", profile?.workspace_id)
+    .order("created_at", { ascending: true })
+
+  const activeCount = (automations ?? []).filter((a: any) => a.status === "active").length
+  const pausedCount = (automations ?? []).filter((a: any) => a.status === "paused").length
+  const totalRuns = (automations ?? []).reduce((sum: number, a: any) => sum + (a.run_count ?? 0), 0)
+
   return (
     <div className="space-y-6 w-full">
       <div className="flex items-center justify-end">
@@ -70,12 +41,11 @@ export default function AutomationsPage() {
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Active",      value: "4", color: "text-emerald-400" },
-          { label: "Paused",      value: "1", color: "text-amber-400" },
-          { label: "Total Runs",  value: "33", color: "text-foreground" },
+          { label: "Active",     value: activeCount, color: "text-emerald-400" },
+          { label: "Paused",     value: pausedCount, color: "text-amber-400" },
+          { label: "Total Runs", value: totalRuns,   color: "text-foreground" },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl bg-card/80 border border-border px-6 py-5">
             <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.label}</p>
@@ -84,46 +54,23 @@ export default function AutomationsPage() {
         ))}
       </div>
 
-      {/* Automation list */}
       <div className="rounded-2xl bg-card/80 border border-border overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
           <IconBadge icon={Zap} />
           <h2 className="text-sm font-semibold text-foreground">All Automations</h2>
         </div>
         <div className="divide-y divide-border/50">
-          {automations.map((auto) => (
-            <div key={auto.name} className="flex items-start gap-4 px-5 py-4 hover:bg-secondary/30 transition-colors">
-              {/* Status indicator */}
-              <div className={cn(
-                "mt-0.5 w-2 h-2 rounded-full shrink-0",
-                auto.status === "active" ? "bg-emerald-400" : "bg-zinc-600"
-              )} />
-
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-medium text-foreground/90">{auto.name}</p>
-                  <span className={cn("text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full", triggerColor[auto.trigger])}>
-                    {auto.trigger}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{auto.description}</p>
-                <p className="text-[10px] text-muted-foreground/60">{auto.runs} runs · Last: {auto.lastRun}</p>
-              </div>
-
-              {/* Toggle */}
-              <button className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors shrink-0",
-                auto.status === "active"
-                  ? "border-border text-muted-foreground hover:text-foreground/90 hover:border-border"
-                  : "border-border text-muted-foreground/60 hover:text-foreground/70 hover:border-border"
-              )}>
-                {auto.status === "active"
-                  ? <><Pause className="w-3 h-3" /> Pause</>
-                  : <><Play className="w-3 h-3" /> Resume</>
-                }
-              </button>
+          {(automations ?? []).length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 py-16 text-center mx-5 my-5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 mb-4" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <h3 className="text-lg font-semibold">No automations configured yet</h3>
+              <p className="mt-1 text-sm text-muted-foreground max-w-sm">Automations will appear here once your workspace is set up.</p>
             </div>
-          ))}
+          ) : (
+            (automations ?? []).map((auto: any) => (
+              <AutomationItem key={auto.id} automation={auto as Automation} />
+            ))
+          )}
         </div>
       </div>
     </div>

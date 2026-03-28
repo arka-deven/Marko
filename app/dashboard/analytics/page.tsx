@@ -1,8 +1,7 @@
-"use client"
-
 import type React from "react"
 import { BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/server"
 
 function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
   return (
@@ -12,40 +11,120 @@ function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
   )
 }
 
-const metrics = [
-  { label: "Total Experiments", value: "134",    change: "+22",     up: true },
-  { label: "Avg. Lift",         value: "18.4%",  change: "+2.1%",   up: true },
-  { label: "Win Rate",          value: "68%",    change: "+4%",     up: true },
-  { label: "Revenue Attributed",value: "$84.2k", change: "+$12k",   up: true },
-]
+export default async function AnalyticsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-const channelData = [
-  { channel: "Web",   experiments: 48, winRate: 72, avgLift: 21.3 },
-  { channel: "Email", experiments: 36, winRate: 64, avgLift: 16.8 },
-  { channel: "Paid",  experiments: 28, winRate: 58, avgLift: 14.2 },
-  { channel: "Social",experiments: 14, winRate: 71, avgLift: 11.7 },
-  { channel: "Push",  experiments: 8,  winRate: 50, avgLift: 8.4  },
-]
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user!.id)
+    .single()
 
-const months = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"]
-const liftData  = [8.2, 10.4, 12.1, 14.6, 16.3, 18.4]
-const expsData  = [12, 18, 22, 26, 30, 34]
+  const { data: experiments = [] } = await supabase
+    .from("experiments")
+    .select("*")
+    .eq("workspace_id", profile?.workspace_id)
+    .order("created_at", { ascending: true })
 
-export default function AnalyticsPage() {
-  const maxLift = Math.max(...liftData)
-  const maxExps = Math.max(...expsData)
+  const exps = experiments ?? []
+
+  if (!exps || exps.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
+          <p className="text-muted-foreground">Track performance across all experiments</p>
+        </div>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 py-20 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 mb-4" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <h3 className="text-lg font-semibold">No experiments yet</h3>
+          <p className="mt-1 text-sm text-muted-foreground max-w-sm">Run your first experiment to see analytics here. Go to Ideas and generate some experiment ideas to get started.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Aggregate stats ──
+  const totalExps = exps.length
+  const expsWithLift = exps.filter((e: any) => e.lift != null)
+  const avgLift = expsWithLift.length > 0
+    ? (expsWithLift.reduce((s: number, e: any) => s + Number(e.lift), 0) / expsWithLift.length).toFixed(1)
+    : "0.0"
+
+  const decided = exps.filter((e: any) => e.status === "winner" || e.status === "failed")
+  const winRate = decided.length > 0
+    ? Math.round(exps.filter((e: any) => e.status === "winner").length / decided.length * 100)
+    : 0
+
+  const revenue = exps.reduce((s: number, e: any) => s + (Number(e.revenue_attributed) || 0), 0)
+  const revenueFormatted = revenue >= 1000 ? `$${(revenue / 1000).toFixed(1)}k` : `$${revenue.toFixed(0)}`
+
+  const metrics = [
+    { label: "Total Experiments",   value: totalExps.toString(),  change: "", up: true },
+    { label: "Avg. Lift",           value: `${avgLift}%`,         change: "", up: true },
+    { label: "Win Rate",            value: `${winRate}%`,         change: "", up: true },
+    { label: "Revenue Attributed",  value: revenueFormatted,      change: "", up: true },
+  ]
+
+  // ── Channel breakdown ──
+  const channelNames = ["Web", "Email", "Paid", "Social", "Push"]
+  const channelData = channelNames.map(ch => {
+    const chExps = exps.filter((e: any) => e.channel === ch)
+    const chDecided = chExps.filter((e: any) => e.status === "winner" || e.status === "failed")
+    const chWinRate = chDecided.length > 0
+      ? Math.round(chExps.filter((e: any) => e.status === "winner").length / chDecided.length * 100)
+      : 0
+    const chWithLift = chExps.filter((e: any) => e.lift != null)
+    const chAvgLift = chWithLift.length > 0
+      ? (chWithLift.reduce((s: number, e: any) => s + Number(e.lift), 0) / chWithLift.length).toFixed(1)
+      : "0.0"
+    return { channel: ch, experiments: chExps.length, winRate: chWinRate, avgLift: parseFloat(chAvgLift) }
+  })
+
+  // ── Monthly chart data (last 6 months) ──
+  const now = new Date()
+  const monthsMeta = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now)
+    d.setMonth(d.getMonth() - 5 + i)
+    return { label: d.toLocaleString("default", { month: "short" }), month: d.getMonth(), year: d.getFullYear() }
+  })
+
+  const liftData = monthsMeta.map(m => {
+    const monthExps = exps.filter((e: any) => {
+      const d = new Date(e.created_at)
+      return d.getMonth() === m.month && d.getFullYear() === m.year && e.lift != null
+    })
+    return monthExps.length > 0
+      ? parseFloat((monthExps.reduce((s: number, e: any) => s + Number(e.lift), 0) / monthExps.length).toFixed(1))
+      : 0
+  })
+
+  const expsData = monthsMeta.map(m =>
+    exps.filter((e: any) => {
+      const d = new Date(e.created_at)
+      return d.getMonth() === m.month && d.getFullYear() === m.year
+    }).length
+  )
+
+  const maxLift = Math.max(...liftData, 1)
+  const maxExps = Math.max(...expsData, 1)
+  const months = monthsMeta.map(m => m.label)
 
   return (
-    <div className="space-y-6 w-full">      {/* Top metrics */}
+    <div className="space-y-6 w-full">
+      {/* Top metrics */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {metrics.map((m) => (
           <div key={m.label} className="rounded-2xl bg-card/80 border border-border px-5 py-5">
             <p className="text-xs text-muted-foreground uppercase tracking-widest">{m.label}</p>
             <p className="text-3xl font-black text-foreground mt-2 tracking-tighter">{m.value}</p>
-            <p className={cn("flex items-center gap-1 text-xs mt-1", m.up ? "text-emerald-400" : "text-red-400")}>
-              {m.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-              {m.change} this month
-            </p>
+            {m.change && (
+              <p className={cn("flex items-center gap-1 text-xs mt-1", m.up ? "text-emerald-400" : "text-red-400")}>
+                {m.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                {m.change} this month
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -63,10 +142,10 @@ export default function AnalyticsPage() {
           <div className="flex items-end gap-2 h-36 pt-4">
             {liftData.map((v, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground">{v}%</span>
+                <span className="text-[10px] text-muted-foreground">{v > 0 ? `${v}%` : ""}</span>
                 <div
                   className="w-full rounded-t-md bg-gradient-to-t from-zinc-700 to-zinc-400 transition-all"
-                  style={{ height: `${(v / maxLift) * 100}%` }}
+                  style={{ height: `${Math.max((v / maxLift) * 100, v > 0 ? 4 : 0)}%` }}
                 />
                 <span className="text-[10px] text-muted-foreground/60">{months[i]}</span>
               </div>
@@ -79,17 +158,17 @@ export default function AnalyticsPage() {
           <div className="flex items-center gap-3">
             <IconBadge icon={BarChart3} />
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Active Experiments</h2>
-              <p className="text-xs text-muted-foreground">Concurrent experiments running</p>
+              <h2 className="text-sm font-semibold text-foreground">Experiments Created</h2>
+              <p className="text-xs text-muted-foreground">Per month</p>
             </div>
           </div>
           <div className="flex items-end gap-2 h-36 pt-4">
             {expsData.map((v, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground">{v}</span>
+                <span className="text-[10px] text-muted-foreground">{v > 0 ? v : ""}</span>
                 <div
                   className="w-full rounded-t-md bg-gradient-to-t from-zinc-700 to-zinc-500 transition-all"
-                  style={{ height: `${(v / maxExps) * 100}%` }}
+                  style={{ height: `${Math.max((v / maxExps) * 100, v > 0 ? 4 : 0)}%` }}
                 />
                 <span className="text-[10px] text-muted-foreground/60">{months[i]}</span>
               </div>
@@ -120,7 +199,9 @@ export default function AnalyticsPage() {
                 </div>
                 <span className="text-sm text-muted-foreground">{row.winRate}%</span>
               </div>
-              <p className="text-sm font-semibold text-emerald-400">+{row.avgLift}%</p>
+              <p className={cn("text-sm font-semibold", row.avgLift > 0 ? "text-emerald-400" : "text-muted-foreground")}>
+                {row.avgLift > 0 ? `+${row.avgLift}%` : "—"}
+              </p>
             </div>
           ))}
         </div>

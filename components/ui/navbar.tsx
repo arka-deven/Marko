@@ -24,8 +24,14 @@ export function Navbar() {
             </Link>
           ))}
           <Link
-            href="/dashboard"
-            className="ml-2 px-4 py-1.5 text-sm rounded-full bg-zinc-100 text-zinc-900 font-medium hover:bg-zinc-200 transition-colors"
+            href="/login"
+            className="ml-2 px-4 py-1.5 text-sm rounded-full transition-colors text-zinc-400 hover:text-zinc-100"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/signup"
+            className="ml-1 px-4 py-1.5 text-sm rounded-full bg-zinc-100 text-zinc-900 font-medium hover:bg-zinc-200 transition-colors"
           >
             Get Started
           </Link>

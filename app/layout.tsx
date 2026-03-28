@@ -4,6 +4,7 @@ import { Manrope } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { LenisProvider } from "@/components/providers/lenis-provider"
 import { ThemeProvider } from "next-themes"
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
 const manrope = Manrope({
@@ -56,6 +57,7 @@ export default function RootLayout({
         >
           <LenisProvider>{children}</LenisProvider>
           <Analytics />
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

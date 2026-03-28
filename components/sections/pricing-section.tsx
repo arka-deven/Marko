@@ -9,6 +9,7 @@ const plans = [
     period: "14-day trial",
     features: ["Up to 50 ideas/month", "AI validation (basic)", "1 content channel", "ROI tracking dashboard", "Slack notifications"],
     cta: "Start Free Trial",
+    href: "/signup?plan=starter",
     highlighted: false,
   },
   {
@@ -26,6 +27,7 @@ const plans = [
       "Weekly performance reports",
     ],
     cta: "Start Free Trial",
+    href: "/signup?plan=growth",
     highlighted: true,
   },
   {
@@ -43,6 +45,7 @@ const plans = [
       "SLA + dedicated support",
     ],
     cta: "Contact Sales",
+    href: "/signup?plan=scale",
     highlighted: false,
   },
 ]
@@ -105,7 +108,7 @@ export function PricingSection() {
 
               {/* CTA */}
               <Link
-                href="#"
+                href={plan.href}
                 className={`block w-full py-3 px-6 text-center rounded-full font-medium text-sm transition-colors mt-auto ${
                   plan.highlighted
                     ? "bg-zinc-900 text-zinc-100 hover:bg-zinc-800"

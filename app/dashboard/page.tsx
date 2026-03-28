@@ -1,36 +1,18 @@
-"use client"
-
 import type React from "react"
-import {
-  BarChart3,
-  Zap,
-  BrainCircuit,
-  Layers,
-  TrendingUp,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  ArrowUpRight,
-} from "lucide-react"
+import { BarChart3, Zap, BrainCircuit, Layers, TrendingUp, CheckCircle2, Clock, XCircle, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
-  siGoogleanalytics,
-  siStripe,
-  siSlackware,
-  siHubspot,
-  siLinear,
-  siNotion,
-  siMixpanel,
-  siFigma,
+  siGoogleanalytics, siStripe, siSlackware, siHubspot,
+  siLinear, siNotion, siMixpanel, siFigma,
 } from "simple-icons"
+import { createClient } from "@/lib/supabase/server"
 
-function BrandIcon({ si, size = 18 }: { si: { svg: string; hex: string }; size?: number }) {
-  // If the brand is black/near-black/white, let CSS handle flipping it based on theme
+function BrandIcon({ si, label, size = 18 }: { si: { svg: string; hex: string }; label?: string; size?: number }) {
   const beThemeAware = ["000000", "181717", "FFFFFF"].includes(si.hex.toUpperCase())
-
   return (
     <svg
       role="img"
+      aria-label={label}
       viewBox="0 0 24 24"
       width={size}
       height={size}
@@ -41,8 +23,6 @@ function BrandIcon({ si, size = 18 }: { si: { svg: string; hex: string }; size?:
   )
 }
 
-// ── Shared ────────────────────────────────────────────────────────────────────
-
 function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
   return (
     <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
@@ -51,36 +31,15 @@ function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
   )
 }
 
-// ── Data ──────────────────────────────────────────────────────────────────────
-
-const experiments = [
-  { name: "Homepage Hero A/B", status: "running",  lift: "+14.2%", channel: "Web" },
-  { name: "Onboarding Email Seq.", status: "running",  lift: "+8.7%",  channel: "Email" },
-  { name: "Pricing Page CTA",    status: "winner",   lift: "+22.1%", channel: "Web" },
-  { name: "LinkedIn Ad Creative", status: "failed",   lift: "−3.4%",  channel: "Paid" },
-]
-
 const statusConfig = {
-  running: { icon: Clock,         color: "text-muted-foreground",   dot: "bg-zinc-500" },
-  winner:  { icon: CheckCircle2,  color: "text-emerald-400", dot: "bg-emerald-400" },
-  failed:  { icon: XCircle,       color: "text-red-400",     dot: "bg-red-500" },
+  running: { icon: Clock,        color: "text-muted-foreground", dot: "bg-zinc-500" },
+  winner:  { icon: CheckCircle2, color: "text-emerald-400",      dot: "bg-emerald-400" },
+  failed:  { icon: XCircle,      color: "text-red-400",          dot: "bg-red-500" },
+  draft:   { icon: Clock,        color: "text-muted-foreground", dot: "bg-zinc-600" },
+  paused:  { icon: Clock,        color: "text-amber-400",        dot: "bg-amber-500" },
 }
 
-const channels = [
-  { label: "Web",   pct: 82 },
-  { label: "Email", pct: 61 },
-  { label: "Paid",  pct: 44 },
-  { label: "Push",  pct: 29 },
-]
-
-const weeklyROI = [
-  { week: "Week 1", value: "8.2%",  raw: 8.2 },
-  { week: "Week 2", value: "13.6%", raw: 13.6 },
-  { week: "Week 3", value: "19.4%", raw: 19.4 },
-  { week: "Week 4", value: "24.1%", raw: 24.1 },
-]
-
-const integrations = [
+const brandIcons = [
   { label: "Google Analytics", si: siGoogleanalytics },
   { label: "Stripe",           si: siStripe },
   { label: "Slack",            si: siSlackware },
@@ -91,9 +50,56 @@ const integrations = [
   { label: "Figma",            si: siFigma },
 ]
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-export default function DashboardPage() {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user!.id)
+    .single()
+
+  const workspaceId = profile?.workspace_id
+
+  const [
+    { data: experiments = [] },
+    { data: todayIdeas = [] },
+    { data: integrations = [] },
+  ] = await Promise.all([
+    supabase.from("experiments").select("*").eq("workspace_id", workspaceId).order("updated_at", { ascending: false }),
+    supabase.from("ideas").select("status").eq("workspace_id", workspaceId).gte("created_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+    supabase.from("integrations").select("status").eq("workspace_id", workspaceId),
+  ])
+
+  const topExps = (experiments ?? []).slice(0, 4)
+  const runningCount = (experiments ?? []).filter((e: any) => e.status === "running").length
+  const draftCount = (experiments ?? []).filter((e: any) => e.status === "draft").length
+
+  const expsWithLift = (experiments ?? []).filter((e: any) => e.lift != null)
+  const avgLift = expsWithLift.length > 0
+    ? (expsWithLift.reduce((s: number, e: any) => s + Number(e.lift), 0) / expsWithLift.length).toFixed(1)
+    : "0.0"
+
+  const decided = (experiments ?? []).filter((e: any) => e.status === "winner" || e.status === "failed")
+  const winRate = decided.length > 0
+    ? Math.round((experiments ?? []).filter((e: any) => e.status === "winner").length / decided.length * 100)
+    : 0
+
+  const channelsList = ["Web", "Email", "Paid", "Push"]
+  const channels = channelsList.map(ch => {
+    const chExps = (experiments ?? []).filter((e: any) => e.channel === ch && e.lift != null)
+    const avg = chExps.length > 0
+      ? Math.round(chExps.reduce((s: number, e: any) => s + Number(e.lift), 0) / chExps.length)
+      : 0
+    return { label: ch, pct: Math.max(0, avg) }
+  })
+
+  const ideasGenerated = (todayIdeas ?? []).length
+  const ideasValidated = (todayIdeas ?? []).filter((i: any) => i.status === "ready" || i.status === "launched").length
+  const ideasLaunched = (todayIdeas ?? []).filter((i: any) => i.status === "launched").length
+  const connectedCount = (integrations ?? []).filter((i: any) => i.status === "connected").length
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full">
 
@@ -103,31 +109,38 @@ export default function DashboardPage() {
           <IconBadge icon={BarChart3} />
           <div>
             <h2 className="text-base font-semibold text-foreground">Experiment Dashboard</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">34 active · 12 awaiting review</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {runningCount} active · {draftCount} awaiting review
+            </p>
           </div>
         </div>
 
-        {/* Experiment rows */}
         <div className="rounded-xl border border-border bg-background/50 overflow-hidden divide-y divide-border/60">
-          {experiments.map((exp) => {
-            const s = statusConfig[exp.status as keyof typeof statusConfig]
-            const StatusIcon = s.icon
-            const isUp = exp.lift.startsWith("+")
-            return (
-              <div key={exp.name} className="flex items-center gap-3 px-4 py-3">
-                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", s.dot)} />
-                <p className="flex-1 text-sm text-foreground/70 truncate">{exp.name}</p>
-                <span className="text-xs text-muted-foreground/60 hidden sm:block">{exp.channel}</span>
-                <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", s.color)} />
-                <span className={cn("text-xs font-semibold w-12 text-right", isUp ? "text-emerald-400" : "text-red-400")}>
-                  {exp.lift}
-                </span>
-              </div>
-            )
-          })}
+          {topExps.length === 0 ? (
+            <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+              No experiments yet — create your first one in the Experiments tab.
+            </div>
+          ) : (
+            topExps.map((exp: any) => {
+              const s = statusConfig[exp.status as keyof typeof statusConfig] ?? statusConfig.draft
+              const StatusIcon = s.icon
+              const lift = exp.lift != null ? (exp.lift >= 0 ? `+${exp.lift}%` : `${exp.lift}%`) : "—"
+              const isUp = exp.lift != null && exp.lift >= 0
+              return (
+                <div key={exp.id} className="flex items-center gap-3 px-4 py-3">
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", s.dot)} />
+                  <p className="flex-1 text-sm text-foreground/70 truncate">{exp.name}</p>
+                  <span className="text-xs text-muted-foreground/60 hidden sm:block">{exp.channel}</span>
+                  <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", s.color)} />
+                  <span className={cn("text-xs font-semibold w-12 text-right", exp.lift == null ? "text-muted-foreground" : isUp ? "text-emerald-400" : "text-red-400")}>
+                    {lift}
+                  </span>
+                </div>
+              )
+            })
+          )}
         </div>
 
-        {/* Channel breakdown */}
         <div className="space-y-2.5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Lift by Channel</p>
           {channels.map((ch) => (
@@ -155,7 +168,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Hero stat */}
         <div className="flex-1 flex flex-col justify-center gap-4 mt-2">
           <div className="flex items-baseline gap-3">
             <span className="text-6xl font-black text-foreground tracking-tighter">30x</span>
@@ -166,14 +178,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Today's AI activity */}
         <div className="rounded-xl border border-border bg-background/50 p-4 space-y-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Today's Output</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Today&apos;s Output</p>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Ideas Generated", value: "47" },
-              { label: "Validated", value: "19" },
-              { label: "Launched", value: "6" },
+              { label: "Ideas Generated", value: ideasGenerated },
+              { label: "Validated",        value: ideasValidated },
+              { label: "Launched",         value: ideasLaunched },
             ].map((s) => (
               <div key={s.label} className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground/60">{s.label}</span>
@@ -183,20 +194,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Sub metrics */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex items-center gap-2.5 bg-secondary/50 rounded-xl px-4 py-3">
             <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" />
             <div>
               <p className="text-xs text-muted-foreground">Avg. Lift</p>
-              <p className="text-sm font-semibold text-foreground">18.4%</p>
+              <p className="text-sm font-semibold text-foreground">{avgLift}%</p>
             </div>
           </div>
           <div className="flex items-center gap-2.5 bg-secondary/50 rounded-xl px-4 py-3">
             <ArrowUpRight className="w-4 h-4 text-muted-foreground shrink-0" />
             <div>
               <p className="text-xs text-muted-foreground">Win Rate</p>
-              <p className="text-sm font-semibold text-foreground">68%</p>
+              <p className="text-sm font-semibold text-foreground">{winRate}%</p>
             </div>
           </div>
         </div>
@@ -212,9 +222,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Weekly ROI grid */}
         <div className="grid grid-cols-4 gap-2">
-          {weeklyROI.map((w) => (
+          {[
+            { week: "Week 1", value: "8.2%",  raw: 8.2 },
+            { week: "Week 2", value: "13.6%", raw: 13.6 },
+            { week: "Week 3", value: "19.4%", raw: 19.4 },
+            { week: "Week 4", value: "24.1%", raw: 24.1 },
+          ].map((w) => (
             <div key={w.week} className="bg-secondary/50 rounded-xl px-3 py-3">
               <p className="text-[10px] text-muted-foreground/60 mb-1">{w.week}</p>
               <p className="text-base font-bold text-foreground">{w.value}</p>
@@ -228,13 +242,12 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Key signals */}
         <div className="rounded-xl border border-border bg-background/50 p-4 space-y-3">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">What Marko Learned</p>
           {[
             { label: "\"Free trial\" CTAs outperform \"Get started\"", impact: "+11%" },
-            { label: "Tuesday sends yield 2.3× higher open rate", impact: "+31%" },
-            { label: "Mobile-first layouts win on paid channels", impact: "+18%" },
+            { label: "Tuesday sends yield 2.3× higher open rate",      impact: "+31%" },
+            { label: "Mobile-first layouts win on paid channels",       impact: "+18%" },
           ].map((insight) => (
             <div key={insight.label} className="flex items-center justify-between gap-4">
               <p className="text-xs text-muted-foreground flex-1">{insight.label}</p>
@@ -254,25 +267,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Integration grid */}
         <div className="grid grid-cols-4 gap-2.5">
-          {integrations.map((int) => (
+          {brandIcons.map((int) => (
             <div
               key={int.label}
               title={int.label}
               className="flex items-center justify-center h-12 rounded-xl border border-border bg-secondary/40 hover:border-border hover:bg-secondary transition-colors cursor-pointer"
             >
-              <BrandIcon si={int.si} size={20} />
+              <BrandIcon si={int.si} label={int.label} size={20} />
             </div>
           ))}
         </div>
 
-        {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Connected", value: "8" },
+            { label: "Connected", value: connectedCount.toString() },
             { label: "Events/day", value: "142k" },
-            { label: "Latency", value: "<50ms" },
+            { label: "Latency",   value: "<50ms" },
           ].map((s) => (
             <div key={s.label} className="bg-secondary/50 rounded-xl px-4 py-3">
               <p className="text-xs text-muted-foreground/60">{s.label}</p>
