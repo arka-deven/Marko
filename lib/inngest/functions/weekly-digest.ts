@@ -17,6 +17,15 @@ export const weeklyDigest = inngest.createFunction(
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
       for (const workspace of workspaces) {
+        const { data: automation } = await supabase
+          .from("automations")
+          .select("id, status, run_count")
+          .eq("workspace_id", workspace.id)
+          .eq("name", "Weekly Digest")
+          .single()
+
+        if (automation?.status === "paused") continue
+
         const { data: profile } = await supabase
           .from("profiles")
           .select("*")
@@ -74,6 +83,13 @@ export const weeklyDigest = inngest.createFunction(
             subject: template.subject,
             html: template.html,
           })
+
+          if (automation?.id) {
+            await supabase.from("automations").update({
+              run_count: (automation.run_count ?? 0) + 1,
+              last_run_at: new Date().toISOString(),
+            }).eq("id", automation.id)
+          }
         } catch (err) {
           logger.error({ err, profileId: profile.id }, "[weekly-digest] Failed to send email")
           continue

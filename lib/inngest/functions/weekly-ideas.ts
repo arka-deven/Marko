@@ -15,6 +15,16 @@ export const weeklyIdeaGeneration = inngest.createFunction(
 
       for (const workspace of workspaces) {
         try {
+          // Check if this automation is paused for this workspace
+          const { data: automation } = await supabase
+            .from("automations")
+            .select("id, status, run_count")
+            .eq("workspace_id", workspace.id)
+            .eq("name", "Weekly Idea Generation")
+            .single()
+
+          if (automation?.status === "paused") continue
+
           const { data: experiments } = await supabase
             .from("experiments")
             .select("name, channel, status")
@@ -62,6 +72,13 @@ export const weeklyIdeaGeneration = inngest.createFunction(
           }))
 
           await supabase.from("ideas").insert(rows)
+
+          if (automation?.id) {
+            await supabase.from("automations").update({
+              run_count: (automation.run_count ?? 0) + 1,
+              last_run_at: new Date().toISOString(),
+            }).eq("id", automation.id)
+          }
         } catch (err) {
           logger.error({ err, workspaceId: workspace.id }, "[weekly-ideas] Failed for workspace")
           continue
