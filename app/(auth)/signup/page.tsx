@@ -12,6 +12,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -19,11 +20,12 @@ export default function SignupPage() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/callback?next=/dashboard`,
       },
     })
 
@@ -33,8 +35,41 @@ export default function SignupPage() {
       return
     }
 
-    router.push("/dashboard")
-    router.refresh()
+    // If session exists, email confirmation is disabled — go straight to dashboard
+    if (data.session) {
+      router.push("/dashboard")
+      router.refresh()
+      return
+    }
+
+    // Email confirmation required — show check-your-email state
+    setAwaitingConfirmation(true)
+    setLoading(false)
+  }
+
+  if (awaitingConfirmation) {
+    return (
+      <div className="w-full max-w-sm text-center">
+        <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
+          <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Email icon">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Check your email</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          We sent a confirmation link to <span className="text-foreground font-medium">{email}</span>. Click it to activate your account and get started.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Wrong email?{" "}
+          <button
+            onClick={() => setAwaitingConfirmation(false)}
+            className="text-foreground font-medium hover:underline"
+          >
+            Go back
+          </button>
+        </p>
+      </div>
+    )
   }
 
   return (

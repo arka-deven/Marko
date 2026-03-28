@@ -9,7 +9,7 @@ const plans = [
     period: "14-day trial",
     features: ["Up to 50 ideas/month", "AI validation (basic)", "1 content channel", "ROI tracking dashboard", "Slack notifications"],
     cta: "Start Free Trial",
-    href: "/signup?plan=starter",
+    href: "/login?plan=starter",
     highlighted: false,
   },
   {
@@ -27,7 +27,7 @@ const plans = [
       "Weekly performance reports",
     ],
     cta: "Start Free Trial",
-    href: "/signup?plan=growth",
+    href: "/login?plan=growth",
     highlighted: true,
   },
   {
@@ -45,7 +45,7 @@ const plans = [
       "SLA + dedicated support",
     ],
     cta: "Contact Sales",
-    href: "/signup?plan=scale",
+    href: "/login?plan=scale",
     highlighted: false,
   },
 ]

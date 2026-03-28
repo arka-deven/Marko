@@ -10,7 +10,7 @@ export function CtaSection() {
           Join growth teams already running 30+ experiments simultaneously with Marko. Let the AI find what works — you scale it.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/signup">
+          <Link href="/login">
             <LiquidCtaButton>Get Started</LiquidCtaButton>
           </Link>
         </div>
