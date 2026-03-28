@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -13,6 +13,21 @@ export default function SignupPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
+
+  // When the user confirms their email in another tab, Supabase fires
+  // SIGNED_IN via localStorage broadcast — catch it and auto-navigate.
+  useEffect(() => {
+    if (!awaitingConfirmation) return
+
+    const supabase = createClient()
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        router.push("/dashboard")
+      }
+    })
+
+    return () => listener.subscription.unsubscribe()
+  }, [awaitingConfirmation, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -50,14 +65,22 @@ export default function SignupPage() {
   if (awaitingConfirmation) {
     return (
       <div className="w-full max-w-sm text-center">
-        <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
-          <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Email icon">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
+        {/* Pulsing ring signals the page is actively listening */}
+        <div className="relative w-12 h-12 mx-auto mb-4">
+          <span className="absolute inset-0 rounded-full bg-secondary/60 animate-ping opacity-40" />
+          <div className="relative w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
+            <svg className="w-6 h-6 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Email icon">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
         </div>
         <h2 className="text-xl font-semibold text-foreground mb-2">Check your email</h2>
+        <p className="text-sm text-muted-foreground mb-2">
+          We sent a confirmation link to{" "}
+          <span className="text-foreground font-medium">{email}</span>.
+        </p>
         <p className="text-sm text-muted-foreground mb-6">
-          We sent a confirmation link to <span className="text-foreground font-medium">{email}</span>. Click it to activate your account and get started.
+          Once you click it, this window will take you straight to your dashboard.
         </p>
         <p className="text-xs text-muted-foreground">
           Wrong email?{" "}
