@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type React from "react"
-import { User, Bell, Lock, CreditCard, Trash2 } from "lucide-react"
+import { User, Bell, Lock, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -11,7 +11,6 @@ interface SettingsFormProps {
   fullName: string
   email: string
   workspaceName: string
-  plan: string
   notifications: {
     experimentResults: boolean
     weeklyDigest: boolean
@@ -40,7 +39,7 @@ function Section({ icon, title, children }: { icon: React.ElementType; title: st
   )
 }
 
-export function SettingsForm({ fullName, email, workspaceName, plan, notifications }: SettingsFormProps) {
+export function SettingsForm({ fullName, email, workspaceName, notifications }: SettingsFormProps) {
   const [name, setName] = useState(fullName)
   const [wsName, setWsName] = useState(workspaceName)
   const [notifs, setNotifs] = useState(notifications)
@@ -225,23 +224,6 @@ export function SettingsForm({ fullName, email, workspaceName, plan, notificatio
         </div>
         {pwError && <p className="text-xs text-red-400">{pwError}</p>}
         <SaveBtn sKey="password" label="Update Password" />
-      </Section>
-
-      {/* Plan */}
-      <Section icon={CreditCard} title="Plan & Billing">
-        <div className="flex items-center justify-between p-4 rounded-xl bg-background/60 border border-border">
-          <div>
-            <p className="text-sm font-semibold text-foreground capitalize">{plan} Plan</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {plan === "free" ? "Up to 5 experiments · 1 workspace" : "Unlimited experiments · Full features"}
-            </p>
-          </div>
-          {plan === "free" && (
-            <button className="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-900 text-sm font-semibold hover:bg-zinc-200 transition-colors">
-              Upgrade
-            </button>
-          )}
-        </div>
       </Section>
 
       {/* Danger */}

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type React from "react"
-import { User, Building2, Bell, Shield, CreditCard, Camera } from "lucide-react"
+import { User, Building2, Bell, Shield, Camera } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 
@@ -12,7 +12,6 @@ interface ProfileFormProps {
   workspaceName: string
   workspaceWebsite: string
   workspaceSlug: string | null
-  plan: string
   notifications: {
     experimentResults: boolean
     weeklyDigest: boolean
@@ -93,7 +92,6 @@ export function ProfileForm({
   workspaceName,
   workspaceWebsite,
   workspaceSlug,
-  plan,
   notifications,
   stats,
 }: ProfileFormProps) {
@@ -169,9 +167,6 @@ export function ProfileForm({
             </p>
             <p className="text-sm text-muted-foreground mt-0.5">{email}</p>
             <div className="flex items-center gap-2 mt-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary border border-border text-xs font-medium text-foreground/70 capitalize">
-                {plan} Plan
-              </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-xs font-medium text-emerald-400">
                 Active
               </span>
@@ -280,30 +275,6 @@ export function ProfileForm({
         </Section>
       </div>
 
-      {/* Plan */}
-      <div className="rounded-2xl bg-card/80 border border-border overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-          <IconBadge icon={CreditCard} />
-          <h2 className="text-sm font-semibold text-foreground">Plan & Billing</h2>
-        </div>
-        <div className="p-5">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-background/60 border border-border">
-            <div>
-              <p className="text-sm font-semibold text-foreground capitalize">{plan} Plan</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {plan === "free"
-                  ? "Up to 5 experiments · 1 workspace · Community support"
-                  : "Unlimited experiments · Full features · Priority support"}
-              </p>
-            </div>
-            {plan === "free" && (
-              <button className="px-5 py-2.5 rounded-xl bg-zinc-100 text-zinc-900 text-sm font-semibold hover:bg-zinc-200 transition-colors">
-                Upgrade to Pro
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
     </>
   )
 }

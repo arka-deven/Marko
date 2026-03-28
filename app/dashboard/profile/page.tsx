@@ -34,7 +34,6 @@ export default async function ProfilePage() {
         workspaceName={workspace?.name ?? "My Workspace"}
         workspaceWebsite={workspace?.website ?? ""}
         workspaceSlug={workspace?.slug ?? null}
-        plan={workspace?.plan ?? "free"}
         notifications={{
           experimentResults: profile?.notification_experiment_results ?? true,
           weeklyDigest:      profile?.notification_weekly_digest ?? true,

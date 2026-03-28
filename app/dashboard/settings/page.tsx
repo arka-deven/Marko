@@ -20,7 +20,6 @@ export default async function SettingsPage() {
       fullName={profile?.full_name ?? ""}
       email={user?.email ?? ""}
       workspaceName={workspace?.name ?? "My Workspace"}
-      plan={workspace?.plan ?? "free"}
       notifications={{
         experimentResults: profile?.notification_experiment_results ?? true,
         weeklyDigest:      profile?.notification_weekly_digest ?? true,
