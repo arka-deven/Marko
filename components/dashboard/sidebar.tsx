@@ -34,14 +34,7 @@ const navSections = [
   },
 ]
 
-interface UserInfo {
-  email: string
-  fullName: string
-  initials: string
-  workspaceId: string
-}
-
-export function Sidebar({ userInfo }: { userInfo: UserInfo }) {
+export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -96,8 +89,8 @@ export function Sidebar({ userInfo }: { userInfo: UserInfo }) {
         ))}
       </nav>
 
-      {/* Bottom — Settings + User */}
-      <div className="px-3 py-4 border-t border-border space-y-2">
+      {/* Bottom — Settings + Sign out */}
+      <div className="px-3 py-4 border-t border-border space-y-0.5">
         <Link
           href="/dashboard/settings"
           className={cn(
@@ -116,24 +109,13 @@ export function Sidebar({ userInfo }: { userInfo: UserInfo }) {
           Settings
         </Link>
 
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
-            {userInfo.initials}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-foreground truncate">
-              {userInfo.fullName || userInfo.email}
-            </p>
-            <p className="text-[10px] text-muted-foreground truncate">{userInfo.email}</p>
-          </div>
-          <button
-            onClick={handleSignOut}
-            aria-label="Sign out"
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <button
+          onClick={handleSignOut}
+          className="group flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+        >
+          <LogOut className="w-4 h-4 shrink-0 text-muted-foreground/60 group-hover:text-muted-foreground" />
+          Sign out
+        </button>
       </div>
     </aside>
   )

@@ -113,6 +113,10 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="space-y-6 w-full">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
+        <p className="text-muted-foreground text-sm mt-1">Performance across all experiments</p>
+      </div>
       {/* Top metrics */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {metrics.map((m) => (

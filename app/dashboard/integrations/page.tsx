@@ -1,11 +1,12 @@
 import type React from "react"
-import { Plug, CheckCircle2, AlertCircle, Plus } from "lucide-react"
+import { Plug } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import {
   siGoogleanalytics, siStripe, siSlackware, siHubspot,
   siMixpanel, siMailchimp, siLinear, siNotion, siZapier, siFigma,
 } from "simple-icons"
+import { IntegrationActions } from "@/components/dashboard/integrations/integration-actions"
 
 type SI = { svg: string; hex: string }
 
@@ -68,20 +69,15 @@ export default async function IntegrationsPage() {
 
   const connectedCount = allIntegrations.filter((i: any) => i.status === "connected").length
   const errorCount = allIntegrations.filter((i: any) => i.status === "error").length
+  const availableCount = allIntegrations.length - connectedCount
 
   return (
     <div className="space-y-6 w-full">
-      <div className="flex items-center justify-end">
-        <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary border border-border hover:bg-secondary/80 transition-all text-sm font-medium text-foreground">
-          <Plus className="w-4 h-4" /> Browse All
-        </button>
-      </div>
-
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Connected",  value: connectedCount, color: "text-emerald-400" },
-          { label: "Issues",     value: errorCount,     color: "text-red-400" },
-          { label: "Events/day", value: "142k",         color: "text-foreground" },
+          { label: "Connected",  value: connectedCount,  color: "text-emerald-400" },
+          { label: "Issues",     value: errorCount,      color: "text-red-400" },
+          { label: "Available",  value: availableCount,  color: "text-foreground" },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl bg-card/80 border border-border px-6 py-5">
             <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.label}</p>
@@ -112,18 +108,7 @@ export default async function IntegrationsPage() {
                       {int.category}{int.events_summary ? ` · ${int.events_summary}` : ""}
                     </p>
                   </div>
-                  {int.status === "connected" ? (
-                    <div className="flex items-center gap-1.5 text-xs text-emerald-400">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Connected
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-xs text-red-400">
-                      <AlertCircle className="w-3.5 h-3.5" /> Error
-                    </div>
-                  )}
-                  <button className="px-3 py-1.5 text-xs text-muted-foreground border border-border rounded-lg hover:text-foreground/70 transition-colors">
-                    Manage
-                  </button>
+                  <IntegrationActions id={int.id} status={int.status} />
                 </div>
               )
             })}
@@ -131,9 +116,9 @@ export default async function IntegrationsPage() {
         </div>
       )}
 
-      {/* Available */}
+      {/* Available to Connect */}
       {available.length > 0 && (
-        <div className="rounded-2xl bg-card/80 border border-border overflow-hidden">
+        <div id="available" className="rounded-2xl bg-card/80 border border-border overflow-hidden">
           <div className="px-5 py-4 border-b border-border">
             <h2 className="text-sm font-semibold text-foreground">Available to Connect</h2>
           </div>
@@ -149,9 +134,7 @@ export default async function IntegrationsPage() {
                     <p className="text-sm font-medium text-foreground/90">{int.provider}</p>
                     <p className="text-xs text-muted-foreground/60">{int.category}</p>
                   </div>
-                  <button className="px-3 py-1.5 text-xs text-muted-foreground border border-border rounded-lg hover:bg-secondary transition-colors">
-                    Connect
-                  </button>
+                  <IntegrationActions id={int.id} status={int.status} />
                 </div>
               )
             })}

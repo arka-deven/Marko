@@ -1,5 +1,5 @@
 import type React from "react"
-import { Zap, Plus } from "lucide-react"
+import { Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import { AutomationItem } from "@/components/dashboard/automations/automation-item"
@@ -36,9 +36,9 @@ export default async function AutomationsPage() {
   return (
     <div className="space-y-6 w-full">
       <div className="flex items-center justify-end">
-        <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary border border-border hover:bg-secondary/80 transition-all text-sm font-medium text-foreground">
-          <Plus className="w-4 h-4" /> New Automation
-        </button>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border text-xs text-muted-foreground/70 bg-secondary/40">
+          <Zap className="w-3.5 h-3.5" /> Managed by Marko AI — runs automatically
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -61,10 +61,12 @@ export default async function AutomationsPage() {
         </div>
         <div className="divide-y divide-border/50">
           {(automations ?? []).length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 py-16 text-center mx-5 my-5">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 mb-4" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              <h3 className="text-lg font-semibold">No automations configured yet</h3>
-              <p className="mt-1 text-sm text-muted-foreground max-w-sm">Automations will appear here once your workspace is set up.</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
+              <Zap className="w-8 h-8 text-muted-foreground/30 mb-1" />
+              <p className="text-sm font-medium text-foreground/70">No automations yet</p>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                Marko will automatically set up your growth automations once you&apos;ve connected your first integration and launched an experiment.
+              </p>
             </div>
           ) : (
             (automations ?? []).map((auto: any) => (

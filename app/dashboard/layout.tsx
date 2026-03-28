@@ -14,22 +14,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, workspace_id")
+    .select("full_name")
     .eq("id", user.id)
     .single()
 
-  const userInfo = {
-    email: user.email ?? "",
-    fullName: profile?.full_name ?? "",
-    initials: (profile?.full_name ?? user.email ?? "U").charAt(0).toUpperCase(),
-    workspaceId: profile?.workspace_id ?? "",
-  }
+  const userInitial = (profile?.full_name ?? user.email ?? "U").charAt(0).toUpperCase()
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar userInfo={userInfo} />
+      <Sidebar />
       <div className="flex flex-col flex-1 ml-56 min-h-screen">
-        <Header userInitial={userInfo.initials} />
+        <Header userInitial={userInitial} />
         <main className="flex-1 px-6 py-8 overflow-y-auto">
           {children}
         </main>

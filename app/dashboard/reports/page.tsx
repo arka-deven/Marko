@@ -1,8 +1,10 @@
 import type React from "react"
-import { FileText, Download, Share2, Plus } from "lucide-react"
+import { FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import type { Report, ReportType } from "@/lib/types"
+import { ReportActions } from "@/components/dashboard/reports/report-actions"
+import { GenerateReportButton } from "@/components/dashboard/reports/generate-report-button"
 
 function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
   return (
@@ -44,9 +46,7 @@ export default async function ReportsPage() {
   return (
     <div className="space-y-6 w-full">
       <div className="flex items-center justify-end">
-        <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary border border-border hover:bg-secondary/80 transition-all text-sm font-medium text-foreground">
-          <Plus className="w-4 h-4" /> Generate Report
-        </button>
+        <GenerateReportButton />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -100,13 +100,8 @@ export default async function ReportsPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <button className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground border border-border rounded-lg hover:text-foreground/90 transition-colors">
-                    <Share2 className="w-3 h-3" /> Share
-                  </button>
-                  <button className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground border border-border rounded-lg hover:text-foreground/90 transition-colors">
-                    <Download className="w-3 h-3" /> PDF
-                  </button>
+                <div className="shrink-0">
+                  <ReportActions report={r} />
                 </div>
               </div>
             ))}

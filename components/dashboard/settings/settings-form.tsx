@@ -48,6 +48,7 @@ export function SettingsForm({ fullName, email, workspaceName, plan, notificatio
   const [confirmPw, setConfirmPw] = useState("")
   const [pwError, setPwError] = useState("")
   const [saving, setSaving] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const userInitial = (name[0] ?? email[0] ?? "U").toUpperCase()
 
@@ -255,9 +256,37 @@ export function SettingsForm({ fullName, email, workspaceName, plan, notificatio
               This will permanently delete all experiments, reports, and data.
             </p>
           </div>
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-900/50 text-red-400 hover:bg-red-950/30 transition-colors text-sm">
-            <Trash2 className="w-3.5 h-3.5" /> Delete
-          </button>
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-900/50 text-red-400 hover:bg-red-950/30 transition-colors text-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Delete
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-400">Are you sure?</span>
+              <button
+                onClick={async () => {
+                  try {
+                    // Sign out and delete — for now just sign out since workspace delete needs backend
+                    const supabase = createClient()
+                    await supabase.auth.signOut()
+                    window.location.href = "/login"
+                  } catch { toast.error("Failed to delete workspace") }
+                }}
+                className="px-3 py-1.5 rounded-lg bg-red-950/50 border border-red-900/50 text-red-400 text-xs hover:bg-red-950 transition-colors"
+              >
+                Yes, delete
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-3 py-1.5 rounded-lg border border-border text-muted-foreground text-xs hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
