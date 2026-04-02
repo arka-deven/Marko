@@ -23,6 +23,7 @@ export const TASK_MODELS: Record<string, string> = {
   "content-push":           MODEL_HAIKU,
   "content-ad":             MODEL_HAIKU,
   "content-twitter":        MODEL_SONNET, // upgraded for brand voice quality
+  "content-newsletter":     MODEL_SONNET, // brand-critical long-form — must be Sonnet
 }
 
 export function getModel(task: string): string {
