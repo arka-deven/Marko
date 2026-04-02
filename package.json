@@ -14,9 +14,9 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
     "@axiomhq/pino": "^1.6.0",
+    "@beehiiv/sdk": "^0.1.9",
     "@emotion/is-prop-valid": "latest",
     "@hookform/resolvers": "^3.10.0",
-    "@hubspot/api-client": "^13.5.0",
     "@paper-design/shaders-react": "0.0.68",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
