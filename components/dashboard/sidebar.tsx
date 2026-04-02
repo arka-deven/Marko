@@ -6,10 +6,8 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 
 const navItems = [
-  { label: "Overview",       href: "/dashboard" },
-  { label: "Inbox",          href: "/dashboard/ideas" },
-  { label: "Content Queue",  href: "/dashboard/queue" },
-  { label: "Analytics",      href: "/dashboard/analytics" },
+  { label: "Overview",    href: "/dashboard" },
+  { label: "Newsletter",  href: "/dashboard/newsletter" },
 ]
 
 export function Sidebar() {
@@ -53,18 +51,6 @@ export function Sidebar() {
 
       {/* Bottom */}
       <div className="px-3 py-3 border-t border-border space-y-0.5">
-        <Link
-          href="/dashboard/settings"
-          className={cn(
-            "block px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-            pathname === "/dashboard/settings"
-              ? "bg-secondary text-foreground"
-              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-          )}
-        >
-          Settings
-        </Link>
-
         <button
           onClick={handleSignOut}
           className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-secondary/60"

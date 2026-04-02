@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
@@ -6,7 +5,6 @@ import { Badge } from "@/components/ui/badge"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
-import { GenerateDialog } from "@/components/dashboard/ideas/generate-dialog"
 
 function formatRelative(dateStr: string | null): string {
   if (!dateStr) return ""
@@ -82,16 +80,8 @@ export default async function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center">
         <h1 className="text-2xl font-bold text-foreground mb-2">Welcome, {firstName}</h1>
-        <p className="text-muted-foreground text-sm max-w-md mb-6">
-          Marko is your AI growth engine. Generate your first batch of content ideas to get started.
-        </p>
-        <GenerateDialog />
-        <p className="text-xs text-muted-foreground mt-6">
-          Ideas will appear in the{" "}
-          <Link href="/dashboard/ideas" className="text-foreground/70 font-medium hover:underline">
-            Inbox
-          </Link>
-          {" "}for you to review.
+        <p className="text-muted-foreground text-sm max-w-md">
+          Marko is your AI growth engine. Your overview will appear here once content starts flowing.
         </p>
       </div>
     )
@@ -114,43 +104,36 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-5 w-full">
       {/* Greeting */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-foreground">Good {getTimeOfDay()}, {firstName}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Pipeline at a glance.</p>
-        </div>
-        <GenerateDialog />
+      <div>
+        <h1 className="text-lg font-semibold text-foreground">Good {getTimeOfDay()}, {firstName}</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Pipeline at a glance.</p>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
-        <Link href="/dashboard/ideas">
-          <Card className="gap-0 py-0 hover:border-foreground/20 transition-colors cursor-pointer">
-            <CardContent className="p-4">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Ideas to Review</p>
-              <p className={cn(
-                "text-3xl font-bold mt-1 tracking-tight",
-                pending > 0 ? "text-emerald-500" : "text-muted-foreground"
-              )}>
-                {pending}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card className="gap-0 py-0">
+          <CardContent className="p-4">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Ideas to Review</p>
+            <p className={cn(
+              "text-3xl font-bold mt-1 tracking-tight",
+              pending > 0 ? "text-emerald-500" : "text-muted-foreground"
+            )}>
+              {pending}
+            </p>
+          </CardContent>
+        </Card>
 
-        <Link href="/dashboard/queue">
-          <Card className="gap-0 py-0 hover:border-foreground/20 transition-colors cursor-pointer">
-            <CardContent className="p-4">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Ready to Publish</p>
-              <p className={cn(
-                "text-3xl font-bold mt-1 tracking-tight",
-                ready > 0 ? "text-emerald-500" : "text-muted-foreground"
-              )}>
-                {ready}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card className="gap-0 py-0">
+          <CardContent className="p-4">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Ready to Publish</p>
+            <p className={cn(
+              "text-3xl font-bold mt-1 tracking-tight",
+              ready > 0 ? "text-emerald-500" : "text-muted-foreground"
+            )}>
+              {ready}
+            </p>
+          </CardContent>
+        </Card>
 
         <Card className="gap-0 py-0">
           <CardContent className="p-4">
@@ -167,23 +150,12 @@ export default async function DashboardPage() {
 
       {/* Content Queue */}
       <Card className="gap-0 py-0 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+        <div className="px-4 py-2.5 border-b border-border">
           <p className="text-sm font-medium text-foreground">Content Queue</p>
-          <Link
-            href="/dashboard/queue"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            View all &rarr;
-          </Link>
         </div>
         {assets.length === 0 ? (
           <div className="py-10 px-4 text-center">
             <p className="text-xs text-muted-foreground">No content in the queue yet.</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              <Link href="/dashboard/ideas" className="text-foreground/70 font-medium hover:underline">
-                Approve ideas
-              </Link>{" "}to start generating.
-            </p>
           </div>
         ) : (
           <Table>
@@ -225,14 +197,8 @@ export default async function DashboardPage() {
 
       {/* Recent Activity */}
       <Card className="gap-0 py-0 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+        <div className="px-4 py-2.5 border-b border-border">
           <p className="text-sm font-medium text-foreground">Recent Activity</p>
-          <Link
-            href="/dashboard/logs"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            View logs &rarr;
-          </Link>
         </div>
         {logs.length === 0 ? (
           <div className="py-10 px-4 text-center">
