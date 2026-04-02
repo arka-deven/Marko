@@ -3,9 +3,12 @@
 import { useState } from "react"
 import type React from "react"
 import { User, Bell, Lock, Trash2 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 
 interface SettingsFormProps {
   fullName: string
@@ -23,18 +26,6 @@ function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
   return (
     <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
       <Icon className="w-5 h-5 text-foreground/70" />
-    </div>
-  )
-}
-
-function Section({ icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl bg-card/80 border border-border overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-        <IconBadge icon={icon} />
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-      </div>
-      <div className="p-5 space-y-4">{children}</div>
     </div>
   )
 }
@@ -114,124 +105,135 @@ export function SettingsForm({ fullName, email, workspaceName, notifications }: 
     }
   }
 
-  function SaveBtn({ sKey, label = "Save Changes" }: { sKey: string; label?: string }) {
-    return (
-      <button
-        onClick={sKey === "profile" ? saveProfile : sKey === "notifs" ? saveNotifications : updatePassword}
-        disabled={saving === sKey}
-        className="px-4 py-2 rounded-xl bg-secondary border border-border hover:bg-secondary/80 transition-all text-sm font-medium text-foreground/70 disabled:opacity-50"
-      >
-        {saving === sKey ? "Saving…" : label}
-      </button>
-    )
-  }
-
   return (
     <div className="space-y-6 w-full">
       {/* Profile */}
-      <Section icon={User} title="Profile">
-        <div className="flex items-center gap-4 pb-4 border-b border-border">
-          <div className="w-14 h-14 rounded-2xl bg-secondary border border-border flex items-center justify-center text-xl font-bold text-foreground/90">
-            {userInitial}
+      <Card>
+        <CardHeader className="flex-row items-center gap-3">
+          <IconBadge icon={User} />
+          <CardTitle className="text-sm">Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4 pb-4 border-b border-border">
+            <div className="w-14 h-14 rounded-2xl bg-secondary border border-border flex items-center justify-center text-xl font-bold text-foreground/90">
+              {userInitial}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground/90">{wsName}</p>
+              <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground/70">
+                Change avatar
+              </Button>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-foreground/90">{wsName}</p>
-            <button className="text-xs text-muted-foreground hover:text-foreground/70 transition-colors mt-0.5">
-              Change avatar →
-            </button>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Full Name</label>
+              <Input
+                value={name}
+                onChange={e => setName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Email</label>
+              <Input
+                value={email}
+                disabled
+              />
+            </div>
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Full Name</label>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full bg-background/60 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground/90 focus:outline-none transition-all"
+            <label className="text-xs font-medium text-muted-foreground">Workspace Name</label>
+            <Input
+              value={wsName}
+              onChange={e => setWsName(e.target.value)}
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Email</label>
-            <input
-              value={email}
-              disabled
-              className="w-full bg-background/60 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground/50 focus:outline-none cursor-not-allowed"
-            />
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Workspace Name</label>
-          <input
-            value={wsName}
-            onChange={e => setWsName(e.target.value)}
-            className="w-full bg-background/60 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground/90 focus:outline-none transition-all"
-          />
-        </div>
-        <SaveBtn sKey="profile" />
-      </Section>
+          <Button
+            variant="secondary"
+            onClick={saveProfile}
+            disabled={saving === "profile"}
+          >
+            {saving === "profile" ? "Saving..." : "Save Changes"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Notifications */}
-      <Section icon={Bell} title="Notifications">
-        {([
-          { key: "experimentResults" as const, label: "Experiment Results",  desc: "Get notified when an experiment reaches significance." },
-          { key: "weeklyDigest"       as const, label: "Weekly Digest",       desc: "Receive a summary of all experiments every Monday." },
-          { key: "aiIdeas"            as const, label: "AI Idea Suggestions", desc: "Get notified when Marko generates new experiment ideas." },
-          { key: "integrationErrors"  as const, label: "Integration Errors",  desc: "Alert when a connected integration fails or disconnects." },
-        ]).map(({ key, label, desc }) => (
-          <div key={key} className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm text-foreground/90">{label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+      <Card>
+        <CardHeader className="flex-row items-center gap-3">
+          <IconBadge icon={Bell} />
+          <CardTitle className="text-sm">Notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {([
+            { key: "experimentResults" as const, label: "Experiment Results",  desc: "Get notified when an experiment reaches significance." },
+            { key: "weeklyDigest"       as const, label: "Weekly Digest",       desc: "Receive a summary of all experiments every Monday." },
+            { key: "aiIdeas"            as const, label: "AI Idea Suggestions", desc: "Get notified when Marko generates new experiment ideas." },
+            { key: "integrationErrors"  as const, label: "Integration Errors",  desc: "Alert when a connected integration fails or disconnects." },
+          ]).map(({ key, label, desc }) => (
+            <div key={key} className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-foreground/90">{label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+              </div>
+              <Switch
+                checked={notifs[key]}
+                onCheckedChange={() => setNotifs(n => ({ ...n, [key]: !n[key] }))}
+              />
             </div>
-            <button
-              onClick={() => setNotifs(n => ({ ...n, [key]: !n[key] }))}
-              className={cn(
-                "relative w-9 h-5 rounded-full border transition-colors shrink-0 mt-0.5",
-                notifs[key] ? "bg-zinc-300 border-zinc-400" : "bg-secondary border-border"
-              )}
-            >
-              <span className={cn(
-                "absolute top-0.5 w-4 h-4 rounded-full bg-card transition-all",
-                notifs[key] ? "left-4" : "left-0.5"
-              )} />
-            </button>
-          </div>
-        ))}
-        <SaveBtn sKey="notifs" label="Save Preferences" />
-      </Section>
+          ))}
+          <Button
+            variant="secondary"
+            onClick={saveNotifications}
+            disabled={saving === "notifs"}
+          >
+            {saving === "notifs" ? "Saving..." : "Save Preferences"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Security */}
-      <Section icon={Lock} title="Security">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">New Password</label>
-            <input
-              type="password"
-              value={newPw}
-              onChange={e => setNewPw(e.target.value)}
-              className="w-full bg-background/60 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground/90 focus:outline-none transition-all"
-            />
+      <Card>
+        <CardHeader className="flex-row items-center gap-3">
+          <IconBadge icon={Lock} />
+          <CardTitle className="text-sm">Security</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">New Password</label>
+              <Input
+                type="password"
+                value={newPw}
+                onChange={e => setNewPw(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Confirm Password</label>
+              <Input
+                type="password"
+                value={confirmPw}
+                onChange={e => setConfirmPw(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Confirm Password</label>
-            <input
-              type="password"
-              value={confirmPw}
-              onChange={e => setConfirmPw(e.target.value)}
-              className="w-full bg-background/60 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground/90 focus:outline-none transition-all"
-            />
-          </div>
-        </div>
-        {pwError && <p className="text-xs text-red-400">{pwError}</p>}
-        <SaveBtn sKey="password" label="Update Password" />
-      </Section>
+          {pwError && <p className="text-xs text-red-400">{pwError}</p>}
+          <Button
+            variant="secondary"
+            onClick={updatePassword}
+            disabled={saving === "password"}
+          >
+            {saving === "password" ? "Updating..." : "Update Password"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Danger */}
-      <div className="rounded-2xl border border-red-900/40 bg-red-950/10 overflow-hidden">
-        <div className="px-5 py-4 border-b border-red-900/30">
-          <h2 className="text-sm font-semibold text-red-400">Danger Zone</h2>
-        </div>
-        <div className="p-5 flex items-center justify-between">
+      <Card className="border-red-900/40 bg-red-950/10">
+        <CardHeader>
+          <CardTitle className="text-sm text-red-400">Danger Zone</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between">
           <div>
             <p className="text-sm text-foreground/70">Delete workspace</p>
             <p className="text-xs text-muted-foreground/60 mt-0.5">
@@ -239,38 +241,40 @@ export function SettingsForm({ fullName, email, workspaceName, notifications }: 
             </p>
           </div>
           {!confirmDelete ? (
-            <button
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={() => setConfirmDelete(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-900/50 text-red-400 hover:bg-red-950/30 transition-colors text-sm"
             >
               <Trash2 className="w-3.5 h-3.5" /> Delete
-            </button>
+            </Button>
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-xs text-red-400">Are you sure?</span>
-              <button
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={async () => {
                   try {
-                    // Sign out and delete — for now just sign out since workspace delete needs backend
                     const supabase = createClient()
                     await supabase.auth.signOut()
                     window.location.href = "/login"
                   } catch { toast.error("Failed to delete workspace") }
                 }}
-                className="px-3 py-1.5 rounded-lg bg-red-950/50 border border-red-900/50 text-red-400 text-xs hover:bg-red-950 transition-colors"
               >
                 Yes, delete
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setConfirmDelete(false)}
-                className="px-3 py-1.5 rounded-lg border border-border text-muted-foreground text-xs hover:text-foreground transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

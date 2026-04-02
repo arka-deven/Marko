@@ -3,35 +3,17 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
-  LayoutDashboard, FlaskConical, BarChart3, Zap,
-  Lightbulb, Plug, FileText, Settings, Sparkles, LogOut,
+  LayoutDashboard, Inbox, Layers, BarChart3,
+  Settings, Sparkles, LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 
-const navSections = [
-  {
-    label: "Core",
-    items: [
-      { label: "Overview",     href: "/dashboard",              icon: LayoutDashboard },
-      { label: "Experiments",  href: "/dashboard/experiments",  icon: FlaskConical },
-      { label: "Analytics",    href: "/dashboard/analytics",    icon: BarChart3 },
-    ],
-  },
-  {
-    label: "AI",
-    items: [
-      { label: "Ideas",        href: "/dashboard/ideas",        icon: Lightbulb },
-      { label: "Automations",  href: "/dashboard/automations",  icon: Zap },
-    ],
-  },
-  {
-    label: "Manage",
-    items: [
-      { label: "Integrations", href: "/dashboard/integrations", icon: Plug },
-      { label: "Reports",      href: "/dashboard/reports",      icon: FileText },
-    ],
-  },
+const navItems = [
+  { label: "Overview",       href: "/dashboard",              icon: LayoutDashboard },
+  { label: "Inbox",          href: "/dashboard/ideas",        icon: Inbox },
+  { label: "Content Queue",  href: "/dashboard/queue",        icon: Layers },
+  { label: "Analytics",      href: "/dashboard/analytics",    icon: BarChart3 },
 ]
 
 export function Sidebar() {
@@ -56,40 +38,31 @@ export function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
-        {navSections.map((section) => (
-          <div key={section.label}>
-            <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-              {section.label}
-            </p>
-            <div className="space-y-0.5">
-              {section.items.map(({ label, href, icon: Icon }) => {
-                const active = pathname === href
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
-                      active
-                        ? "bg-secondary text-foreground border border-border"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                    )}
-                  >
-                    <Icon className={cn(
-                      "w-4 h-4 shrink-0",
-                      active ? "text-foreground" : "text-muted-foreground/60 group-hover:text-muted-foreground"
-                    )} />
-                    {label}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        ))}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {navItems.map(({ label, href, icon: Icon }) => {
+          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
+                active
+                  ? "bg-secondary text-foreground border border-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+              )}
+            >
+              <Icon className={cn(
+                "w-4 h-4 shrink-0",
+                active ? "text-foreground" : "text-muted-foreground/60 group-hover:text-muted-foreground"
+              )} />
+              {label}
+            </Link>
+          )
+        })}
       </nav>
 
-      {/* Bottom — Settings + Sign out */}
+      {/* Bottom */}
       <div className="px-3 py-4 border-t border-border space-y-0.5">
         <Link
           href="/dashboard/settings"

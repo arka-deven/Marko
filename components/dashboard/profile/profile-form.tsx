@@ -5,6 +5,11 @@ import type React from "react"
 import { User, Building2, Bell, Shield, Camera } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
 
 interface ProfileFormProps {
   fullName: string
@@ -26,63 +31,6 @@ function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
     <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
       <Icon className="w-5 h-5 text-foreground/70" />
     </div>
-  )
-}
-
-function Section({ icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl bg-card/80 border border-border overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-        <IconBadge icon={icon} />
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-      </div>
-      <div className="p-5 space-y-4">{children}</div>
-    </div>
-  )
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-  hint,
-  disabled,
-  placeholder,
-}: {
-  label: string
-  value: string
-  onChange?: (v: string) => void
-  type?: string
-  hint?: string
-  disabled?: boolean
-  placeholder?: string
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange?.(e.target.value)}
-        disabled={disabled}
-        placeholder={placeholder}
-        className="w-full bg-background/60 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/60 focus:outline-none transition-all disabled:text-foreground/50 disabled:cursor-not-allowed"
-      />
-      {hint && <p className="text-[10px] text-muted-foreground/60">{hint}</p>}
-    </div>
-  )
-}
-
-function SaveButton({ saving, label = "Save Changes", onClick }: { saving: boolean; label?: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={saving}
-      className="px-4 py-2 rounded-xl bg-secondary border border-border hover:bg-secondary/80 transition-all text-sm font-medium text-foreground/70 disabled:opacity-50"
-    >
-      {saving ? "Saving…" : label}
-    </button>
   )
 }
 
@@ -147,132 +95,186 @@ export function ProfileForm({
   return (
     <>
       {/* Avatar card */}
-      <div className="rounded-2xl bg-card/80 border border-border p-6">
-        <div className="flex items-center gap-6">
-          <div className="relative shrink-0">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-600 to-zinc-800 border border-border flex items-center justify-center text-2xl font-bold text-foreground">
-              {userInitial}
-            </div>
-            <button
-              aria-label="Change avatar"
-              className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center hover:bg-secondary/80 transition-colors"
-            >
-              <Camera className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <p className="text-lg font-semibold text-foreground">
-              {`${firstName} ${lastName}`.trim() || email}
-            </p>
-            <p className="text-sm text-muted-foreground mt-0.5">{email}</p>
-            <div className="flex items-center gap-2 mt-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-xs font-medium text-emerald-400">
-                Active
-              </span>
-            </div>
-          </div>
-
-          <div className="hidden xl:grid grid-cols-3 gap-6 shrink-0">
-            {[
-              { label: "Experiments", value: stats.experiments },
-              { label: "Automations", value: stats.automations },
-              { label: "Reports",     value: stats.reports },
-            ].map((s) => (
-              <div key={s.label} className="text-center">
-                <p className="text-2xl font-black text-foreground tracking-tighter">{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+      <Card className="p-6">
+        <CardContent className="p-0">
+          <div className="flex items-center gap-6">
+            <div className="relative shrink-0">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-600 to-zinc-800 border border-border flex items-center justify-center text-2xl font-bold text-foreground">
+                {userInitial}
               </div>
-            ))}
+              <Button
+                variant="secondary"
+                size="icon-sm"
+                aria-label="Change avatar"
+                className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-lg"
+              >
+                <Camera className="w-3.5 h-3.5 text-muted-foreground" />
+              </Button>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-lg font-semibold text-foreground">
+                {`${firstName} ${lastName}`.trim() || email}
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">{email}</p>
+              <div className="flex items-center gap-2 mt-3">
+                <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400" variant="outline">
+                  Active
+                </Badge>
+              </div>
+            </div>
+
+            <div className="hidden xl:grid grid-cols-3 gap-6 shrink-0">
+              {[
+                { label: "Experiments", value: stats.experiments },
+                { label: "Automations", value: stats.automations },
+                { label: "Reports",     value: stats.reports },
+              ].map((s) => (
+                <div key={s.label} className="text-center">
+                  <p className="text-2xl font-black text-foreground tracking-tighter">{s.value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         {/* Personal info */}
-        <Section icon={User} title="Personal Information">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="First Name" value={firstName} onChange={setFirstName} />
-            <Field label="Last Name"  value={lastName}  onChange={setLastName} />
-          </div>
-          <Field label="Email" value={email} type="email" disabled hint="Email cannot be changed here." />
-          <SaveButton
-            saving={saving === "profile"}
-            onClick={() => save("profile", { profile: { full_name: `${firstName} ${lastName}`.trim() } })}
-          />
-        </Section>
+        <Card>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconBadge icon={User} />
+            <CardTitle className="text-sm">Personal Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">First Name</label>
+                <Input value={firstName} onChange={e => setFirstName(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Last Name</label>
+                <Input value={lastName} onChange={e => setLastName(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Email</label>
+              <Input value={email} type="email" disabled />
+              <p className="text-[10px] text-muted-foreground/60">Email cannot be changed here.</p>
+            </div>
+            <Button
+              variant="secondary"
+              disabled={saving === "profile"}
+              onClick={() => save("profile", { profile: { full_name: `${firstName} ${lastName}`.trim() } })}
+            >
+              {saving === "profile" ? "Saving..." : "Save Changes"}
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Workspace */}
-        <Section icon={Building2} title="Workspace">
-          <Field label="Workspace Name" value={wsName} onChange={setWsName} />
-          <Field
-            label="Workspace URL"
-            value={workspaceSlug ? `marko.app/w/${workspaceSlug}` : ""}
-            disabled
-            hint="Public URL for your workspace."
-          />
-          <Field
-            label="Website"
-            value={wsWebsite}
-            onChange={setWsWebsite}
-            type="url"
-            placeholder="https://yoursite.com"
-            hint="Optional — shown on your public profile."
-          />
-          <SaveButton
-            saving={saving === "workspace"}
-            onClick={() => save("workspace", { workspace: { name: wsName, website: wsWebsite || null } })}
-          />
-        </Section>
+        <Card>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconBadge icon={Building2} />
+            <CardTitle className="text-sm">Workspace</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Workspace Name</label>
+              <Input value={wsName} onChange={e => setWsName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Workspace URL</label>
+              <Input value={workspaceSlug ? `marko.app/w/${workspaceSlug}` : ""} disabled />
+              <p className="text-[10px] text-muted-foreground/60">Public URL for your workspace.</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Website</label>
+              <Input
+                value={wsWebsite}
+                onChange={e => setWsWebsite(e.target.value)}
+                type="url"
+                placeholder="https://yoursite.com"
+              />
+              <p className="text-[10px] text-muted-foreground/60">Optional -- shown on your public profile.</p>
+            </div>
+            <Button
+              variant="secondary"
+              disabled={saving === "workspace"}
+              onClick={() => save("workspace", { workspace: { name: wsName, website: wsWebsite || null } })}
+            >
+              {saving === "workspace" ? "Saving..." : "Save Changes"}
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Notifications */}
-        <Section icon={Bell} title="Notification Preferences">
-          {([
-            { key: "experimentResults" as const, label: "Experiment Results",  desc: "Get notified when an experiment reaches significance." },
-            { key: "weeklyDigest"       as const, label: "Weekly Digest",       desc: "Receive a summary of all experiments every Monday." },
-            { key: "aiIdeas"            as const, label: "AI Idea Suggestions", desc: "Get notified when Marko generates new experiment ideas." },
-            { key: "integrationErrors"  as const, label: "Integration Errors",  desc: "Alert when a connected integration fails or disconnects." },
-          ]).map(({ key, label, desc }) => (
-            <div key={key} className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm text-foreground/90">{label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+        <Card>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconBadge icon={Bell} />
+            <CardTitle className="text-sm">Notification Preferences</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {([
+              { key: "experimentResults" as const, label: "Experiment Results",  desc: "Get notified when an experiment reaches significance." },
+              { key: "weeklyDigest"       as const, label: "Weekly Digest",       desc: "Receive a summary of all experiments every Monday." },
+              { key: "aiIdeas"            as const, label: "AI Idea Suggestions", desc: "Get notified when Marko generates new experiment ideas." },
+              { key: "integrationErrors"  as const, label: "Integration Errors",  desc: "Alert when a connected integration fails or disconnects." },
+            ]).map(({ key, label, desc }) => (
+              <div key={key} className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm text-foreground/90">{label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                </div>
+                <Switch
+                  checked={notifs[key]}
+                  onCheckedChange={() => setNotifs(n => ({ ...n, [key]: !n[key] }))}
+                />
               </div>
-              <button
-                onClick={() => setNotifs(n => ({ ...n, [key]: !n[key] }))}
-                className={`relative w-9 h-5 rounded-full border transition-colors shrink-0 mt-0.5 ${
-                  notifs[key] ? "bg-zinc-300 border-zinc-400" : "bg-secondary border-border"
-                }`}
-              >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card transition-all ${notifs[key] ? "left-4" : "left-0.5"}`} />
-              </button>
-            </div>
-          ))}
-          <SaveButton
-            saving={saving === "notifications"}
-            label="Save Preferences"
-            onClick={() => save("notifications", {
-              profile: {
-                notification_experiment_results: notifs.experimentResults,
-                notification_weekly_digest:      notifs.weeklyDigest,
-                notification_ai_ideas:           notifs.aiIdeas,
-                notification_integration_errors: notifs.integrationErrors,
-              },
-            })}
-          />
-        </Section>
+            ))}
+            <Button
+              variant="secondary"
+              disabled={saving === "notifications"}
+              onClick={() => save("notifications", {
+                profile: {
+                  notification_experiment_results: notifs.experimentResults,
+                  notification_weekly_digest:      notifs.weeklyDigest,
+                  notification_ai_ideas:           notifs.aiIdeas,
+                  notification_integration_errors: notifs.integrationErrors,
+                },
+              })}
+            >
+              {saving === "notifications" ? "Saving..." : "Save Preferences"}
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Security */}
-        <Section icon={Shield} title="Security">
-          <Field label="New Password"     value={newPw}      onChange={setNewPw}      type="password" />
-          <Field label="Confirm Password" value={confirmPw}  onChange={setConfirmPw}  type="password" />
-          {pwError && <p className="text-xs text-red-400">{pwError}</p>}
-          <SaveButton
-            saving={saving === "password"}
-            label="Update Password"
-            onClick={updatePassword}
-          />
-        </Section>
+        <Card>
+          <CardHeader className="flex-row items-center gap-3">
+            <IconBadge icon={Shield} />
+            <CardTitle className="text-sm">Security</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">New Password</label>
+              <Input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Confirm Password</label>
+              <Input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} />
+            </div>
+            {pwError && <p className="text-xs text-red-400">{pwError}</p>}
+            <Button
+              variant="secondary"
+              disabled={saving === "password"}
+              onClick={updatePassword}
+            >
+              {saving === "password" ? "Updating..." : "Update Password"}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
     </>

@@ -1,14 +1,23 @@
-import type React from "react"
-import { BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import Link from "next/link"
+import {
+  TrendingUp, TrendingDown, ArrowRight,
+  Linkedin, Mail, Globe, Video, Twitter,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
-function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
-  return (
-    <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
-      <Icon className="w-5 h-5 text-foreground/70" />
-    </div>
-  )
+const CHANNEL_ICON: Record<string, typeof Linkedin> = {
+  LinkedIn: Linkedin,
+  Email: Mail,
+  Blog: Globe,
+  Video: Video,
+  Twitter: Twitter,
 }
 
 export default async function AnalyticsPage() {
@@ -21,195 +30,334 @@ export default async function AnalyticsPage() {
     .eq("id", user!.id)
     .single()
 
-  const { data: experiments = [] } = await supabase
-    .from("experiments")
-    .select("*")
-    .eq("workspace_id", profile?.workspace_id)
-    .order("created_at", { ascending: true })
+  const workspaceId = profile?.workspace_id
 
-  const exps = experiments ?? []
+  const [
+    { data: allAssets = [] },
+    { data: perfRows = [] },
+    { count: totalIdeas },
+    { count: approvedIdeas },
+  ] = await Promise.all([
+    supabase
+      .from("content_assets")
+      .select("id, title, channel, asset_type, status, published_at, created_at")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("content_performance")
+      .select("content_asset_id, impressions, clicks, likes, comments, shares, saves, engagement_quality_score")
+      .eq("workspace_id", workspaceId),
+    supabase
+      .from("ideas")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId),
+    supabase
+      .from("ideas")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("status", "approved"),
+  ])
 
-  if (!exps || exps.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground">Track performance across all experiments</p>
-        </div>
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 py-20 text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 mb-4" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-          <h3 className="text-lg font-semibold">No experiments yet</h3>
-          <p className="mt-1 text-sm text-muted-foreground max-w-sm">Run your first experiment to see analytics here. Go to Ideas and generate some experiment ideas to get started.</p>
-        </div>
-      </div>
-    )
-  }
+  const assets = allAssets ?? []
+  const perf = perfRows ?? []
+  const perfMap = new Map(perf.map((p: any) => [p.content_asset_id, p]))
 
-  // ── Aggregate stats ──
-  const totalExps = exps.length
-  const expsWithLift = exps.filter((e: any) => e.lift != null)
-  const avgLift = expsWithLift.length > 0
-    ? (expsWithLift.reduce((s: number, e: any) => s + Number(e.lift), 0) / expsWithLift.length).toFixed(1)
-    : "0.0"
+  const published = assets.filter((a: any) => a.status === "published")
+  const ready = assets.filter((a: any) => a.status === "ready")
+  const generating = assets.filter((a: any) => a.status === "generating")
+  const failed = assets.filter((a: any) => a.status === "failed")
 
-  const decided = exps.filter((e: any) => e.status === "winner" || e.status === "failed")
-  const winRate = decided.length > 0
-    ? Math.round(exps.filter((e: any) => e.status === "winner").length / decided.length * 100)
-    : 0
+  // Aggregate performance
+  const totalImpressions = perf.reduce((s: number, p: any) => s + (p.impressions ?? 0), 0)
+  const totalClicks = perf.reduce((s: number, p: any) => s + (p.clicks ?? 0), 0)
+  const totalEngagement = perf.reduce((s: number, p: any) => s + (p.engagement_quality_score ?? 0), 0)
+  const avgEngagement = perf.length > 0 ? Math.round(totalEngagement / perf.length) : 0
+  const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) : "0.0"
 
-  const revenue = exps.reduce((s: number, e: any) => s + (Number(e.revenue_attributed) || 0), 0)
-  const revenueFormatted = revenue >= 1000 ? `$${(revenue / 1000).toFixed(1)}k` : `$${revenue.toFixed(0)}`
-
-  const metrics = [
-    { label: "Total Experiments",   value: totalExps.toString(),  change: "", up: true },
-    { label: "Avg. Lift",           value: `${avgLift}%`,         change: "", up: true },
-    { label: "Win Rate",            value: `${winRate}%`,         change: "", up: true },
-    { label: "Revenue Attributed",  value: revenueFormatted,      change: "", up: true },
-  ]
-
-  // ── Channel breakdown ──
-  const channelNames = ["Web", "Email", "Paid", "Social", "Push"]
+  // Channel breakdown
+  const channelNames = ["LinkedIn", "Email", "Blog", "Video", "Twitter"]
   const channelData = channelNames.map(ch => {
-    const chExps = exps.filter((e: any) => e.channel === ch)
-    const chDecided = chExps.filter((e: any) => e.status === "winner" || e.status === "failed")
-    const chWinRate = chDecided.length > 0
-      ? Math.round(chExps.filter((e: any) => e.status === "winner").length / chDecided.length * 100)
-      : 0
-    const chWithLift = chExps.filter((e: any) => e.lift != null)
-    const chAvgLift = chWithLift.length > 0
-      ? (chWithLift.reduce((s: number, e: any) => s + Number(e.lift), 0) / chWithLift.length).toFixed(1)
-      : "0.0"
-    return { channel: ch, experiments: chExps.length, winRate: chWinRate, avgLift: parseFloat(chAvgLift) }
-  })
+    const chAssets = assets.filter((a: any) => a.channel === ch)
+    const chPublished = chAssets.filter((a: any) => a.status === "published")
+    const chPerf = chPublished
+      .map((a: any) => perfMap.get(a.id))
+      .filter(Boolean)
+    const impressions = chPerf.reduce((s: number, p: any) => s + (p.impressions ?? 0), 0)
+    const clicks = chPerf.reduce((s: number, p: any) => s + (p.clicks ?? 0), 0)
+    const engagement = chPerf.reduce((s: number, p: any) => s + (p.engagement_quality_score ?? 0), 0)
+    const avgEng = chPerf.length > 0 ? Math.round(engagement / chPerf.length) : 0
+    return {
+      channel: ch,
+      total: chAssets.length,
+      published: chPublished.length,
+      impressions,
+      clicks,
+      avgEngagement: avgEng,
+    }
+  }).filter(c => c.total > 0)
 
-  // ── Monthly chart data (last 6 months) ──
-  const now = new Date()
-  const monthsMeta = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now)
-    d.setMonth(d.getMonth() - 5 + i)
-    return { label: d.toLocaleString("default", { month: "short" }), month: d.getMonth(), year: d.getFullYear() }
-  })
-
-  const liftData = monthsMeta.map(m => {
-    const monthExps = exps.filter((e: any) => {
-      const d = new Date(e.created_at)
-      return d.getMonth() === m.month && d.getFullYear() === m.year && e.lift != null
+  // Top performing content (by engagement score)
+  const topContent = published
+    .map((a: any) => {
+      const p = perfMap.get(a.id) as any
+      return { ...a, perf: p }
     })
-    return monthExps.length > 0
-      ? parseFloat((monthExps.reduce((s: number, e: any) => s + Number(e.lift), 0) / monthExps.length).toFixed(1))
-      : 0
-  })
+    .filter((a: any) => a.perf)
+    .sort((a: any, b: any) => (b.perf.engagement_quality_score ?? 0) - (a.perf.engagement_quality_score ?? 0))
+    .slice(0, 5)
 
-  const expsData = monthsMeta.map(m =>
-    exps.filter((e: any) => {
-      const d = new Date(e.created_at)
-      return d.getMonth() === m.month && d.getFullYear() === m.year
+  // Weekly content output (last 8 weeks)
+  const now = new Date()
+  const weeklyOutput = Array.from({ length: 8 }, (_, i) => {
+    const weekEnd = new Date(now)
+    weekEnd.setDate(now.getDate() - i * 7)
+    const weekStart = new Date(weekEnd)
+    weekStart.setDate(weekEnd.getDate() - 7)
+    const count = assets.filter((a: any) => {
+      const d = new Date(a.created_at)
+      return d >= weekStart && d <= weekEnd
     }).length
-  )
+    return { label: `W${8 - i}`, count }
+  }).reverse()
 
-  const maxLift = Math.max(...liftData, 1)
-  const maxExps = Math.max(...expsData, 1)
-  const months = monthsMeta.map(m => m.label)
+  const maxWeekly = Math.max(...weeklyOutput.map(w => w.count), 1)
+
+  const hasData = assets.length > 0
 
   return (
     <div className="space-y-6 w-full">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground text-sm mt-1">Performance across all experiments</p>
-      </div>
-      {/* Top metrics */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {metrics.map((m) => (
-          <div key={m.label} className="rounded-2xl bg-card/80 border border-border px-5 py-5">
-            <p className="text-xs text-muted-foreground uppercase tracking-widest">{m.label}</p>
-            <p className="text-3xl font-black text-foreground mt-2 tracking-tighter">{m.value}</p>
-            {m.change && (
-              <p className={cn("flex items-center gap-1 text-xs mt-1", m.up ? "text-emerald-400" : "text-red-400")}>
-                {m.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {m.change} this month
-              </p>
-            )}
-          </div>
-        ))}
+        <h1 className="text-lg font-semibold text-foreground">Analytics</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Content performance and pipeline health.</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        {/* Lift over time */}
-        <div className="rounded-2xl bg-card/80 border border-border p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <IconBadge icon={TrendingUp} />
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Average Lift Over Time</h2>
-              <p className="text-xs text-muted-foreground">6-month rolling average</p>
-            </div>
+      {!hasData ? (
+        <Card className="gap-0 py-0">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-3">
+            <TrendingUp className="w-8 h-8 text-muted-foreground/30" />
+            <p className="text-sm font-medium text-foreground">No data yet</p>
+            <p className="text-xs text-muted-foreground">
+              Approve ideas and publish content to see analytics here.
+            </p>
+            <Link
+              href="/dashboard/ideas"
+              className="text-xs text-emerald-500 hover:text-emerald-400 flex items-center gap-1 mt-2"
+            >
+              Go to Inbox <ArrowRight className="w-3 h-3" />
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Key metrics — green/red only */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard label="Total Content" value={assets.length} />
+            <MetricCard label="Published" value={published.length} positive={published.length > 0} />
+            <MetricCard
+              label="Impressions"
+              value={totalImpressions.toLocaleString()}
+              positive={totalImpressions > 0}
+            />
+            <MetricCard
+              label="CTR"
+              value={`${ctr}%`}
+              positive={parseFloat(ctr) > 1}
+              negative={parseFloat(ctr) < 0.5 && totalImpressions > 100}
+            />
           </div>
-          <div className="flex items-end gap-2 h-36 pt-4">
-            {liftData.map((v, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground">{v > 0 ? `${v}%` : ""}</span>
-                <div
-                  className="w-full rounded-t-md bg-gradient-to-t from-zinc-700 to-zinc-400 transition-all"
-                  style={{ height: `${Math.max((v / maxLift) * 100, v > 0 ? 4 : 0)}%` }}
-                />
-                <span className="text-[10px] text-muted-foreground/60">{months[i]}</span>
+
+          {/* Pipeline status */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard label="Generating" value={generating.length} />
+            <MetricCard label="Ready to Publish" value={ready.length} positive={ready.length > 0} />
+            <MetricCard label="Avg Engagement" value={avgEngagement} positive={avgEngagement > 50} />
+            <MetricCard
+              label="Failed"
+              value={failed.length}
+              negative={failed.length > 0}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Weekly output bar chart — green bars */}
+            <Card className="gap-0 py-0 overflow-hidden">
+              <div className="px-5 py-4 border-b border-border">
+                <p className="text-sm font-medium text-foreground">Weekly Content Output</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Last 8 weeks</p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Experiments over time */}
-        <div className="rounded-2xl bg-card/80 border border-border p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <IconBadge icon={BarChart3} />
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Experiments Created</h2>
-              <p className="text-xs text-muted-foreground">Per month</p>
-            </div>
-          </div>
-          <div className="flex items-end gap-2 h-36 pt-4">
-            {expsData.map((v, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground">{v > 0 ? v : ""}</span>
-                <div
-                  className="w-full rounded-t-md bg-gradient-to-t from-zinc-700 to-zinc-500 transition-all"
-                  style={{ height: `${Math.max((v / maxExps) * 100, v > 0 ? 4 : 0)}%` }}
-                />
-                <span className="text-[10px] text-muted-foreground/60">{months[i]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Channel breakdown */}
-      <div className="rounded-2xl bg-card/80 border border-border overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-          <IconBadge icon={BarChart3} />
-          <h2 className="text-sm font-semibold text-foreground">Performance by Channel</h2>
-        </div>
-        <div className="grid grid-cols-4 gap-3 px-5 py-3 border-b border-border/60 bg-background/40">
-          {["Channel", "Experiments", "Win Rate", "Avg. Lift"].map((h) => (
-            <p key={h} className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">{h}</p>
-          ))}
-        </div>
-        <div className="divide-y divide-border/50">
-          {channelData.map((row) => (
-            <div key={row.channel} className="grid grid-cols-4 gap-3 items-center px-5 py-3.5 hover:bg-secondary/30 transition-colors">
-              <p className="text-sm text-foreground/90 font-medium">{row.channel}</p>
-              <p className="text-sm text-muted-foreground">{row.experiments}</p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden max-w-16">
-                  <div className="h-full rounded-full bg-gradient-to-r from-zinc-500 to-zinc-300" style={{ width: `${row.winRate}%` }} />
+              <div className="px-5 py-5">
+                <div className="flex items-end gap-2 h-32">
+                  {weeklyOutput.map((w) => (
+                    <div key={w.label} className="flex-1 flex flex-col items-center gap-1">
+                      {w.count > 0 && (
+                        <span className="text-[10px] font-medium text-foreground">{w.count}</span>
+                      )}
+                      <div
+                        className={cn(
+                          "w-full rounded-t transition-all",
+                          w.count > 0 ? "bg-emerald-500/80" : "bg-muted/30"
+                        )}
+                        style={{
+                          height: w.count > 0
+                            ? `${Math.max((w.count / maxWeekly) * 100, 8)}%`
+                            : "4%",
+                        }}
+                      />
+                      <span className="text-[10px] text-muted-foreground">{w.label}</span>
+                    </div>
+                  ))}
                 </div>
-                <span className="text-sm text-muted-foreground">{row.winRate}%</span>
               </div>
-              <p className={cn("text-sm font-semibold", row.avgLift > 0 ? "text-emerald-400" : "text-muted-foreground")}>
-                {row.avgLift > 0 ? `+${row.avgLift}%` : "—"}
-              </p>
+            </Card>
+
+            {/* Top performing content */}
+            <Card className="gap-0 py-0 overflow-hidden">
+              <div className="px-5 py-4 border-b border-border">
+                <p className="text-sm font-medium text-foreground">Top Performing</p>
+                <p className="text-xs text-muted-foreground mt-0.5">By engagement score</p>
+              </div>
+              {topContent.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">No performance data yet</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/50">
+                  {topContent.map((item: any) => {
+                    const Icon = CHANNEL_ICON[item.channel] ?? Globe
+                    return (
+                      <div key={item.id} className="flex items-center gap-3 px-5 py-3">
+                        <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-foreground/90 truncate">
+                            {item.title ?? `${item.channel} ${item.asset_type}`}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {(item.perf.impressions ?? 0).toLocaleString()} views
+                        </span>
+                        <span className={cn(
+                          "text-xs font-semibold shrink-0",
+                          (item.perf.engagement_quality_score ?? 0) >= 50 ? "text-emerald-500" : "text-red-500"
+                        )}>
+                          {item.perf.engagement_quality_score ?? 0}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Channel breakdown table */}
+          {channelData.length > 0 && (
+            <Card className="gap-0 py-0 overflow-hidden">
+              <div className="px-5 py-4 border-b border-border">
+                <p className="text-sm font-medium text-foreground">Performance by Channel</p>
+              </div>
+              <ScrollArea className="w-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-secondary/30">
+                      <TableHead className="px-5 text-[10px] uppercase tracking-widest">Channel</TableHead>
+                      <TableHead className="px-5 text-right text-[10px] uppercase tracking-widest">Total</TableHead>
+                      <TableHead className="px-5 text-right text-[10px] uppercase tracking-widest">Published</TableHead>
+                      <TableHead className="px-5 text-right text-[10px] uppercase tracking-widest">Impressions</TableHead>
+                      <TableHead className="px-5 text-right text-[10px] uppercase tracking-widest">Clicks</TableHead>
+                      <TableHead className="px-5 text-right text-[10px] uppercase tracking-widest">Avg Engagement</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {channelData.map(row => {
+                      const Icon = CHANNEL_ICON[row.channel] ?? Globe
+                      return (
+                        <TableRow key={row.channel}>
+                          <TableCell className="px-5 py-3">
+                            <div className="flex items-center gap-2">
+                              <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="font-medium text-foreground/90">{row.channel}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right px-5 py-3 text-muted-foreground">{row.total}</TableCell>
+                          <TableCell className="text-right px-5 py-3 text-muted-foreground">{row.published}</TableCell>
+                          <TableCell className="text-right px-5 py-3 text-muted-foreground">{row.impressions.toLocaleString()}</TableCell>
+                          <TableCell className="text-right px-5 py-3 text-muted-foreground">{row.clicks.toLocaleString()}</TableCell>
+                          <TableCell className="text-right px-5 py-3">
+                            <span className={cn(
+                              "font-semibold",
+                              row.avgEngagement >= 50 ? "text-emerald-500" : row.avgEngagement > 0 ? "text-red-500" : "text-muted-foreground"
+                            )}>
+                              {row.avgEngagement > 0 ? row.avgEngagement : "—"}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </Card>
+          )}
+
+          {/* Funnel conversion */}
+          <Card className="gap-0 py-0 overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <p className="text-sm font-medium text-foreground">Pipeline Funnel</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Ideas to published content conversion</p>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="px-5 py-5">
+              <div className="flex items-center gap-3">
+                {[
+                  { label: "Ideas", value: totalIdeas ?? 0, color: "bg-foreground/20" },
+                  { label: "Approved", value: approvedIdeas ?? 0, color: "bg-foreground/40" },
+                  { label: "Content Created", value: assets.length, color: "bg-emerald-500/40" },
+                  { label: "Published", value: published.length, color: "bg-emerald-500" },
+                ].map((step, i, arr) => (
+                  <div key={step.label} className="flex-1 flex flex-col items-center gap-2">
+                    <div
+                      className={cn("w-full rounded h-8 flex items-center justify-center", step.color)}
+                    >
+                      <span className="text-xs font-bold text-foreground">{step.value}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground text-center">{step.label}</p>
+                    {i < arr.length - 1 && (
+                      <ArrowRight className="w-3 h-3 text-muted-foreground/40 absolute" style={{ display: "none" }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </>
+      )}
     </div>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  positive,
+  negative,
+}: {
+  label: string
+  value: number | string
+  positive?: boolean
+  negative?: boolean
+}) {
+  return (
+    <Card className="gap-0 py-0">
+      <CardContent className="p-4">
+        <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">{label}</p>
+        <p className={cn(
+          "text-2xl font-bold mt-1 tracking-tight",
+          negative ? "text-red-500" : positive ? "text-emerald-500" : "text-foreground"
+        )}>
+          {value}
+        </p>
+      </CardContent>
+    </Card>
   )
 }

@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Sparkles, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
 
 export function GenerateButton() {
   const router = useRouter()
@@ -32,17 +33,13 @@ export function GenerateButton() {
   }
 
   return (
-    <button
-      onClick={handleGenerate}
-      disabled={loading}
-      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-secondary border border-border hover:bg-secondary/80 transition-all text-sm font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-    >
+    <Button variant="outline" onClick={handleGenerate} disabled={loading}>
       {loading ? (
         <Loader2 className="w-4 h-4 animate-spin" />
       ) : (
         <Sparkles className="w-4 h-4" />
       )}
       {loading ? "Generating..." : "Generate More"}
-    </button>
+    </Button>
   )
 }

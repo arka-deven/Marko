@@ -4,6 +4,7 @@ import { getAuthContext } from "@/lib/api/auth"
 import { apiError, handleApiError } from "@/lib/api/errors"
 import { tracedClaude } from "@/lib/ai/traced-claude"
 import { SYSTEM_PROMPT, buildIdeaGenerationPrompt } from "@/lib/ai/prompts"
+import { getISOWeek, getThemeForWeek } from "@/lib/ai/cialdini-brand"
 
 const IdeaSchema = z.object({
   title: z.string().min(3).max(200),
@@ -30,23 +31,29 @@ export async function POST(request: Request) {
 
     if (recentIdea) return apiError("Please wait before generating again", 429)
 
-    const { data: experiments } = await auth.supabase
-      .from("experiments")
-      .select("name, channel, status")
+    // Get recent idea titles to avoid repetition
+    const { data: recentIdeas } = await auth.supabase
+      .from("ideas")
+      .select("title")
       .eq("workspace_id", auth.workspaceId)
-      .limit(50)
+      .order("created_at", { ascending: false })
+      .limit(30)
 
-    let count = 5
+    const recentTitles = (recentIdeas ?? []).map(i => i.title)
+
+    // Get this week's theme and optional brief from request body
+    const theme = getThemeForWeek(getISOWeek(new Date()))
+    let marketingBrief: string | undefined
     try {
       const body = await request.json()
-      if (body.count && typeof body.count === "number") {
-        count = Math.min(Math.max(body.count, 1), 10)
+      if (body.brief && typeof body.brief === "string") {
+        marketingBrief = body.brief
       }
     } catch {
       // No body or invalid JSON
     }
 
-    const prompt = buildIdeaGenerationPrompt(experiments ?? [], count)
+    const prompt = buildIdeaGenerationPrompt(theme, recentTitles, { marketingBrief })
 
     const message = await tracedClaude("idea-generation", [{ role: "user", content: prompt }], {
       system: SYSTEM_PROMPT,
