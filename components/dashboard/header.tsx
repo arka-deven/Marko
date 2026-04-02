@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 
@@ -10,7 +9,7 @@ export function Header({ userInitial = "U" }: { userInitial?: string }) {
   useEffect(() => setMounted(true), [])
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-end gap-2.5 px-5 h-12 bg-background/90 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-20 flex items-center justify-end gap-2.5 px-5 h-14 bg-background/90 backdrop-blur-md border-b border-border">
       {/* Theme toggle */}
       <button
         onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
@@ -21,12 +20,11 @@ export function Header({ userInitial = "U" }: { userInitial?: string }) {
       </button>
 
       {/* Avatar */}
-      <Link
-        href="/dashboard/settings"
-        className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-[11px] font-semibold text-foreground hover:bg-secondary/80 transition-colors"
+      <div
+        className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-[11px] font-semibold text-foreground"
       >
         {userInitial}
-      </Link>
+      </div>
     </header>
   )
 }
