@@ -56,7 +56,7 @@ const BRIEF_EXAMPLES = [
 export function GenerateDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const loading = false // TODO: wire up loading state when async generation is added
 
   const [theme, setTheme] = useState<string>("auto")
   const [audience, setAudience] = useState<"both" | "b2b" | "b2c">("both")

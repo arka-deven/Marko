@@ -40,10 +40,6 @@ function dateGroupLabel(dateStr: string): string {
   return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
 }
 
-function actionLabel(action: string): string {
-  return action.replace(".", " ").replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
 function ActorBadge({ actor }: { actor: "admin" | "engine" }) {
   if (actor === "engine") {
     return (

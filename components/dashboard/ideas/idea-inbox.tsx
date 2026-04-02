@@ -15,7 +15,7 @@ interface Props {
   pendingCount: number
 }
 
-export function IdeaInbox({ ideas: initialIdeas, pendingCount: initialPending }: Props) {
+export function IdeaInbox({ ideas: initialIdeas, pendingCount: _initialPending }: Props) {
   const [visible, setVisible] = useState<Idea[]>(initialIdeas)
   const [approvingAll, setApprovingAll] = useState(false)
   const searchParams = useSearchParams()

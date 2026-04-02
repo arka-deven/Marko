@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Eye, ChevronDown, ChevronUp, Download, Users } from "lucide-react"
+import { Eye, ChevronDown, ChevronUp, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import type { LeadMagnet, LeadMagnetFormat } from "@/lib/types"

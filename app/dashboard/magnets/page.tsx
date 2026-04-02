@@ -1,7 +1,7 @@
 import Link from "next/link"
 import {
   Gift, Download, FileText, ClipboardList, BarChart3,
-  BookOpen, Mail, Eye, ArrowUpRight, Inbox,
+  BookOpen, Mail, Inbox,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"

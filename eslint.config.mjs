@@ -22,6 +22,6 @@ export default [
     },
   },
   {
-    ignores: [".next/**", "node_modules/**", "supabase/**", "**/use-toast.ts", "lib/supabase/middleware.ts"],
+    ignores: [".next/**", "node_modules/**", "supabase/**", ".claude/**", "**/use-toast.ts", "lib/supabase/middleware.ts"],
   },
 ]
