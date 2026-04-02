@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import type React from "react"
-import { User, Bell, Lock, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import { Card } from "@/components/ui/card"
 
 interface SettingsFormProps {
   fullName: string
@@ -19,23 +19,14 @@ interface SettingsFormProps {
   }
 }
 
-function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
-      <Icon className="w-5 h-5 text-foreground/70" />
-    </div>
-  )
-}
-
-function Section({ icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl bg-card/80 border border-border overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-        <IconBadge icon={icon} />
+    <Card className="overflow-hidden">
+      <div className="px-4 py-3 border-b border-border">
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       </div>
-      <div className="p-5 space-y-4">{children}</div>
-    </div>
+      <div className="p-4 space-y-4">{children}</div>
+    </Card>
   )
 }
 
@@ -129,7 +120,7 @@ export function SettingsForm({ fullName, email, workspaceName, notifications }: 
   return (
     <div className="space-y-6 w-full">
       {/* Profile */}
-      <Section icon={User} title="Profile">
+      <Section title="Profile">
         <div className="flex items-center gap-4 pb-4 border-b border-border">
           <div className="w-14 h-14 rounded-2xl bg-secondary border border-border flex items-center justify-center text-xl font-bold text-foreground/90">
             {userInitial}
@@ -171,7 +162,7 @@ export function SettingsForm({ fullName, email, workspaceName, notifications }: 
       </Section>
 
       {/* Notifications */}
-      <Section icon={Bell} title="Notifications">
+      <Section title="Notifications">
         {([
           { key: "experimentResults" as const, label: "Experiment Results",  desc: "Get notified when an experiment reaches significance." },
           { key: "weeklyDigest"       as const, label: "Weekly Digest",       desc: "Receive a summary of all experiments every Monday." },
@@ -201,7 +192,7 @@ export function SettingsForm({ fullName, email, workspaceName, notifications }: 
       </Section>
 
       {/* Security */}
-      <Section icon={Lock} title="Security">
+      <Section title="Security">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">New Password</label>
@@ -243,7 +234,7 @@ export function SettingsForm({ fullName, email, workspaceName, notifications }: 
               onClick={() => setConfirmDelete(true)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-900/50 text-red-400 hover:bg-red-950/30 transition-colors text-sm"
             >
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+              Delete
             </button>
           ) : (
             <div className="flex items-center gap-2">

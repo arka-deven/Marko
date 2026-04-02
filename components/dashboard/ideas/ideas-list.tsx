@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import type { Idea } from "@/lib/types"
 import { useState } from "react"
 import { toast } from "sonner"
+import { Card } from "@/components/ui/card"
 
 const effortColor: Record<string, string> = {
   Low:    "bg-emerald-400/10 text-emerald-400",
@@ -115,15 +116,15 @@ export function IdeasList({ ideas }: { ideas: Idea[] }) {
           { label: "Queued", value: String(queuedCount), color: "text-amber-400" },
           { label: "Total Ideas", value: String(ideas.length), color: "text-emerald-400" },
         ].map((s) => (
-          <div key={s.label} className="rounded-2xl bg-card/80 border border-border px-6 py-5">
+          <Card key={s.label} className="px-6 py-5">
             <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.label}</p>
             <p className={cn("text-4xl font-black mt-2 tracking-tighter", s.color)}>{s.value}</p>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* Ideas list */}
-      <div className="rounded-2xl bg-card/80 border border-border overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
           <IconBadge icon={Lightbulb} />
           <h2 className="text-sm font-semibold text-foreground">AI-Generated Ideas</h2>
@@ -144,7 +145,7 @@ export function IdeasList({ ideas }: { ideas: Idea[] }) {
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

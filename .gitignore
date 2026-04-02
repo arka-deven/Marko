@@ -30,5 +30,8 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
+# claude code
+.claude/
+
 # env override (keep .env.example)
 !.env.example

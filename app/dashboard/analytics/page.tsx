@@ -1,14 +1,20 @@
-import type React from "react"
-import { BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
 
-function IconBadge({ icon: Icon }: { icon: React.ElementType }) {
-  return (
-    <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
-      <Icon className="w-5 h-5 text-foreground/70" />
-    </div>
-  )
+function formatDate(d: string | null) {
+  if (!d) return "---"
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
+
+function formatNum(n: number) {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return n.toString()
 }
 
 export default async function AnalyticsPage() {
@@ -21,195 +27,205 @@ export default async function AnalyticsPage() {
     .eq("id", user!.id)
     .single()
 
-  const { data: experiments = [] } = await supabase
-    .from("experiments")
-    .select("*")
-    .eq("workspace_id", profile?.workspace_id)
-    .order("created_at", { ascending: true })
+  const workspaceId = profile?.workspace_id
 
-  const exps = experiments ?? []
+  const [
+    { data: publishedContent = [] },
+    { data: perfRows = [] },
+  ] = await Promise.all([
+    supabase
+      .from("content_assets")
+      .select("id, title, channel, asset_type, published_at, idea_id")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "published")
+      .order("published_at", { ascending: false }),
+    supabase
+      .from("content_performance")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false }),
+  ])
 
-  if (!exps || exps.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground">Track performance across all experiments</p>
-        </div>
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 py-20 text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 mb-4" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-          <h3 className="text-lg font-semibold">No experiments yet</h3>
-          <p className="mt-1 text-sm text-muted-foreground max-w-sm">Run your first experiment to see analytics here. Go to Ideas and generate some experiment ideas to get started.</p>
-        </div>
-      </div>
-    )
-  }
+  const allPublished = publishedContent ?? []
+  const allPerf = perfRows ?? []
+  const perfMap = new Map(allPerf.map((p: any) => [p.content_asset_id, p]))
 
-  // ── Aggregate stats ──
-  const totalExps = exps.length
-  const expsWithLift = exps.filter((e: any) => e.lift != null)
-  const avgLift = expsWithLift.length > 0
-    ? (expsWithLift.reduce((s: number, e: any) => s + Number(e.lift), 0) / expsWithLift.length).toFixed(1)
-    : "0.0"
+  const withMetrics = allPublished.filter((c: any) => perfMap.has(c.id))
+  const withoutMetrics = allPublished.filter((c: any) => !perfMap.has(c.id))
 
-  const decided = exps.filter((e: any) => e.status === "winner" || e.status === "failed")
-  const winRate = decided.length > 0
-    ? Math.round(exps.filter((e: any) => e.status === "winner").length / decided.length * 100)
-    : 0
-
-  const revenue = exps.reduce((s: number, e: any) => s + (Number(e.revenue_attributed) || 0), 0)
-  const revenueFormatted = revenue >= 1000 ? `$${(revenue / 1000).toFixed(1)}k` : `$${revenue.toFixed(0)}`
-
-  const metrics = [
-    { label: "Total Experiments",   value: totalExps.toString(),  change: "", up: true },
-    { label: "Avg. Lift",           value: `${avgLift}%`,         change: "", up: true },
-    { label: "Win Rate",            value: `${winRate}%`,         change: "", up: true },
-    { label: "Revenue Attributed",  value: revenueFormatted,      change: "", up: true },
-  ]
-
-  // ── Channel breakdown ──
-  const channelNames = ["Web", "Email", "Paid", "Social", "Push"]
-  const channelData = channelNames.map(ch => {
-    const chExps = exps.filter((e: any) => e.channel === ch)
-    const chDecided = chExps.filter((e: any) => e.status === "winner" || e.status === "failed")
-    const chWinRate = chDecided.length > 0
-      ? Math.round(chExps.filter((e: any) => e.status === "winner").length / chDecided.length * 100)
-      : 0
-    const chWithLift = chExps.filter((e: any) => e.lift != null)
-    const chAvgLift = chWithLift.length > 0
-      ? (chWithLift.reduce((s: number, e: any) => s + Number(e.lift), 0) / chWithLift.length).toFixed(1)
-      : "0.0"
-    return { channel: ch, experiments: chExps.length, winRate: chWinRate, avgLift: parseFloat(chAvgLift) }
-  })
-
-  // ── Monthly chart data (last 6 months) ──
-  const now = new Date()
-  const monthsMeta = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now)
-    d.setMonth(d.getMonth() - 5 + i)
-    return { label: d.toLocaleString("default", { month: "short" }), month: d.getMonth(), year: d.getFullYear() }
-  })
-
-  const liftData = monthsMeta.map(m => {
-    const monthExps = exps.filter((e: any) => {
-      const d = new Date(e.created_at)
-      return d.getMonth() === m.month && d.getFullYear() === m.year && e.lift != null
-    })
-    return monthExps.length > 0
-      ? parseFloat((monthExps.reduce((s: number, e: any) => s + Number(e.lift), 0) / monthExps.length).toFixed(1))
-      : 0
-  })
-
-  const expsData = monthsMeta.map(m =>
-    exps.filter((e: any) => {
-      const d = new Date(e.created_at)
-      return d.getMonth() === m.month && d.getFullYear() === m.year
-    }).length
+  const totalPublished = allPublished.length
+  const totalImpressions = allPerf.reduce((s: number, p: any) => s + (p.impressions ?? 0), 0)
+  const totalClicks = allPerf.reduce((s: number, p: any) => s + (p.clicks ?? 0), 0)
+  const avgEngagement = allPerf.length > 0
+    ? (allPerf.reduce((s: number, p: any) => s + (p.engagement_quality_score ?? 0), 0) / allPerf.length).toFixed(1)
+    : "0"
+  const totalConversions = allPerf.reduce(
+    (s: number, p: any) => s + (p.email_captures ?? 0) + (p.training_inquiries ?? 0) + (p.cmct_inquiries ?? 0),
+    0
   )
 
-  const maxLift = Math.max(...liftData, 1)
-  const maxExps = Math.max(...expsData, 1)
-  const months = monthsMeta.map(m => m.label)
+  const hasAnyData = allPerf.length > 0
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-5 w-full">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground text-sm mt-1">Performance across all experiments</p>
-      </div>
-      {/* Top metrics */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {metrics.map((m) => (
-          <div key={m.label} className="rounded-2xl bg-card/80 border border-border px-5 py-5">
-            <p className="text-xs text-muted-foreground uppercase tracking-widest">{m.label}</p>
-            <p className="text-3xl font-black text-foreground mt-2 tracking-tighter">{m.value}</p>
-            {m.change && (
-              <p className={cn("flex items-center gap-1 text-xs mt-1", m.up ? "text-emerald-400" : "text-red-400")}>
-                {m.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {m.change} this month
-              </p>
-            )}
-          </div>
-        ))}
+        <h1 className="text-lg font-semibold text-foreground">Analytics</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Content performance and conversions.</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        {/* Lift over time */}
-        <div className="rounded-2xl bg-card/80 border border-border p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <IconBadge icon={TrendingUp} />
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Average Lift Over Time</h2>
-              <p className="text-xs text-muted-foreground">6-month rolling average</p>
-            </div>
-          </div>
-          <div className="flex items-end gap-2 h-36 pt-4">
-            {liftData.map((v, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground">{v > 0 ? `${v}%` : ""}</span>
-                <div
-                  className="w-full rounded-t-md bg-gradient-to-t from-zinc-700 to-zinc-400 transition-all"
-                  style={{ height: `${Math.max((v / maxLift) * 100, v > 0 ? 4 : 0)}%` }}
-                />
-                <span className="text-[10px] text-muted-foreground/60">{months[i]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Experiments over time */}
-        <div className="rounded-2xl bg-card/80 border border-border p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <IconBadge icon={BarChart3} />
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Experiments Created</h2>
-              <p className="text-xs text-muted-foreground">Per month</p>
-            </div>
-          </div>
-          <div className="flex items-end gap-2 h-36 pt-4">
-            {expsData.map((v, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground">{v > 0 ? v : ""}</span>
-                <div
-                  className="w-full rounded-t-md bg-gradient-to-t from-zinc-700 to-zinc-500 transition-all"
-                  style={{ height: `${Math.max((v / maxExps) * 100, v > 0 ? 4 : 0)}%` }}
-                />
-                <span className="text-[10px] text-muted-foreground/60">{months[i]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Summary */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <MetricCard label="Published" value={totalPublished} />
+        <MetricCard
+          label="Impressions"
+          value={hasAnyData ? formatNum(totalImpressions) : "---"}
+          sub={hasAnyData ? `${formatNum(totalClicks)} clicks` : "log metrics to see data"}
+        />
+        <MetricCard
+          label="Engagement"
+          value={hasAnyData ? avgEngagement : "---"}
+          positive={hasAnyData && parseFloat(avgEngagement) > 0}
+          sub={hasAnyData ? `across ${allPerf.length} pieces` : "avg quality score"}
+        />
+        <MetricCard
+          label="Conversions"
+          value={hasAnyData ? totalConversions : "---"}
+          sub="signups + inquiries"
+        />
       </div>
 
-      {/* Channel breakdown */}
-      <div className="rounded-2xl bg-card/80 border border-border overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-          <IconBadge icon={BarChart3} />
-          <h2 className="text-sm font-semibold text-foreground">Performance by Channel</h2>
+      {/* Content with metrics */}
+      <Card className="gap-0 py-0 overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-border">
+          <p className="text-sm font-medium text-foreground">Content Performance</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {withMetrics.length > 0
+              ? "Real metrics from published content"
+              : "Publish content and log metrics to see data"}
+          </p>
         </div>
-        <div className="grid grid-cols-4 gap-3 px-5 py-3 border-b border-border/60 bg-background/40">
-          {["Channel", "Experiments", "Win Rate", "Avg. Lift"].map((h) => (
-            <p key={h} className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">{h}</p>
-          ))}
-        </div>
-        <div className="divide-y divide-border/50">
-          {channelData.map((row) => (
-            <div key={row.channel} className="grid grid-cols-4 gap-3 items-center px-5 py-3.5 hover:bg-secondary/30 transition-colors">
-              <p className="text-sm text-foreground/90 font-medium">{row.channel}</p>
-              <p className="text-sm text-muted-foreground">{row.experiments}</p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden max-w-16">
-                  <div className="h-full rounded-full bg-gradient-to-r from-zinc-500 to-zinc-300" style={{ width: `${row.winRate}%` }} />
-                </div>
-                <span className="text-sm text-muted-foreground">{row.winRate}%</span>
-              </div>
-              <p className={cn("text-sm font-semibold", row.avgLift > 0 ? "text-emerald-400" : "text-muted-foreground")}>
-                {row.avgLift > 0 ? `+${row.avgLift}%` : "—"}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
+        {withMetrics.length === 0 ? (
+          <div className="py-10 px-4 text-center">
+            <p className="text-sm text-muted-foreground">No performance data yet.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Go to the{" "}
+              <Link href="/dashboard/queue" className="text-foreground/70 font-medium hover:underline">
+                Content Queue
+              </Link>
+              {" "}to publish and log metrics.
+            </p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-4 text-[11px]">Title</TableHead>
+                <TableHead className="px-4 text-[11px]">Channel</TableHead>
+                <TableHead className="px-4 text-[11px]">Published</TableHead>
+                <TableHead className="px-4 text-[11px] text-right">Impressions</TableHead>
+                <TableHead className="px-4 text-[11px] text-right">Clicks</TableHead>
+                <TableHead className="px-4 text-[11px] text-right">Engagement</TableHead>
+                <TableHead className="px-4 text-[11px] text-right">Conversions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {withMetrics.map((asset: any) => {
+                const p = perfMap.get(asset.id) as any
+                const conversions = (p?.email_captures ?? 0) + (p?.training_inquiries ?? 0) + (p?.cmct_inquiries ?? 0)
+                return (
+                  <TableRow key={asset.id}>
+                    <TableCell className="px-4 py-2.5 text-sm font-medium text-foreground truncate max-w-[200px]">
+                      {asset.title ?? "Untitled"}
+                    </TableCell>
+                    <TableCell className="px-4 py-2.5">
+                      <Badge variant="secondary" className="text-[10px]">{asset.channel}</Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {formatDate(asset.published_at)}
+                    </TableCell>
+                    <TableCell className="px-4 py-2.5 text-sm font-semibold text-right">
+                      {formatNum(p?.impressions ?? 0)}
+                    </TableCell>
+                    <TableCell className="px-4 py-2.5 text-sm text-right">
+                      {formatNum(p?.clicks ?? 0)}
+                    </TableCell>
+                    <TableCell className={cn(
+                      "px-4 py-2.5 text-sm font-semibold text-right",
+                      (p?.engagement_quality_score ?? 0) > 10 ? "text-emerald-500" : "text-foreground"
+                    )}>
+                      {(p?.engagement_quality_score ?? 0).toFixed(1)}
+                    </TableCell>
+                    <TableCell className="px-4 py-2.5 text-sm text-right">
+                      {conversions > 0 ? conversions : "---"}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
+
+      {/* Content missing metrics */}
+      {withoutMetrics.length > 0 && (
+        <Card className="gap-0 py-0 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border">
+            <p className="text-sm font-medium text-foreground">Needs Metrics</p>
+            <p className="text-xs text-muted-foreground">
+              {withoutMetrics.length} published {withoutMetrics.length === 1 ? "piece" : "pieces"} without data
+            </p>
+          </div>
+          <Table>
+            <TableBody>
+              {withoutMetrics.map((asset: any) => (
+                <TableRow key={asset.id}>
+                  <TableCell className="px-4 py-2.5">
+                    <p className="text-sm text-foreground/90 truncate">{asset.title ?? "Untitled"}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {asset.channel} &middot; published {formatDate(asset.published_at)}
+                    </p>
+                  </TableCell>
+                  <TableCell className="px-4 py-2.5 text-right">
+                    <Link
+                      href="/dashboard/queue"
+                      className="text-xs text-emerald-500 hover:text-emerald-400 font-medium transition-colors"
+                    >
+                      Log metrics
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
     </div>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  positive,
+  sub,
+}: {
+  label: string
+  value: number | string
+  positive?: boolean
+  sub?: string
+}) {
+  return (
+    <Card className="gap-0 py-0">
+      <CardContent className="p-4">
+        <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">{label}</p>
+        <p className={cn(
+          "text-2xl font-bold mt-1 tracking-tight",
+          positive ? "text-emerald-500" : "text-foreground"
+        )}>
+          {value}
+        </p>
+        {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
+      </CardContent>
+    </Card>
   )
 }

@@ -3,7 +3,7 @@ import { z } from "zod"
 const ChannelEnum = z.enum(["Web", "Email", "Paid", "Social", "Push"])
 const EffortEnum = z.enum(["Low", "Medium", "High"])
 const ExperimentStatusEnum = z.enum(["draft", "running", "winner", "failed", "paused"])
-const IdeaStatusEnum = z.enum(["queued", "ready", "launched", "dismissed"])
+const IdeaStatusEnum = z.enum(["queued", "ready", "approved", "rejected", "launched", "dismissed"])
 const AutomationStatusEnum = z.enum(["active", "paused"])
 
 export const ExperimentCreateSchema = z.object({

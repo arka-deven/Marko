@@ -1,10 +1,8 @@
 import type { MessageParam, Message } from "@anthropic-ai/sdk/resources/messages"
 import { getClaudeClient } from "@/lib/ai/claude"
 import { getLangfuseClient } from "@/lib/langfuse/client"
+import { getModel, getMaxTokens } from "@/lib/ai/config"
 import { logger } from "@/lib/logger"
-
-const AI_MODEL = "claude-sonnet-4-20250514"
-const AI_MAX_TOKENS = 2048
 
 export async function tracedClaude(
   traceName: string,
@@ -14,21 +12,31 @@ export async function tracedClaude(
     max_tokens?: number
     system?: string
     workspaceId?: string
+    // Enable prompt caching on system prompt — saves ~90% on repeated input tokens
+    cacheSystem?: boolean
   }
 ): Promise<Message> {
-  const model = options?.model ?? AI_MODEL
-  const max_tokens = options?.max_tokens ?? AI_MAX_TOKENS
+  const model = options?.model ?? getModel(traceName)
+  const max_tokens = options?.max_tokens ?? getMaxTokens(traceName)
 
   const langfuse = getLangfuseClient()
   const trace = langfuse.trace({ name: traceName, metadata: { workspaceId: options?.workspaceId } })
   const generation = trace.generation({ name: traceName, model, input: messages })
 
   const claude = getClaudeClient()
-  const response = await claude.messages.create({
+
+  // Prompt caching: mark the system prompt as cacheable when the same system is
+  // used repeatedly (idea generation, content generation loops).
+  const systemParam: any = options?.cacheSystem && options?.system
+    ? [{ type: "text", text: options.system, cache_control: { type: "ephemeral" } }]
+    : options?.system
+
+  const response = await (claude.messages.create as any)({
     model,
     max_tokens,
-    system: options?.system,
+    ...(systemParam !== undefined ? { system: systemParam } : {}),
     messages,
+    // Prompt caching is now GA — no beta flag needed. cache_control on system block is sufficient.
   })
 
   generation.end({
