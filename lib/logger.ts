@@ -21,13 +21,16 @@ if (process.env.AXIOM_TOKEN && process.env.AXIOM_DATASET) {
   })
 }
 
+const useTransport = targets.length > 1
+
 export const logger = pino({
   level: process.env.LOG_LEVEL || "info",
-  formatters: {
-    level: (label) => ({ level: label }),
-  },
+  // formatters are not allowed when using transport.targets
+  ...(!useTransport && {
+    formatters: {
+      level: (label) => ({ level: label }),
+    },
+  }),
   timestamp: pino.stdTimeFunctions.isoTime,
-  ...(targets.length > 1
-    ? { transport: { targets } }
-    : {}),
+  ...(useTransport ? { transport: { targets } } : {}),
 })
